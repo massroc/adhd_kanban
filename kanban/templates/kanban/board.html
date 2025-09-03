@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ADHD Kanban Organizer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f5f7fa;
+            padding: 20px;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+        }
+        
+        .add-task-form {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .add-task-form input, .add-task-form textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        
+        .add-task-form button {
+            background: #3498db;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.2s;
+        }
+        
+        .add-task-form button:hover {
+            background: #2980b9;
+        }
+        
+        .kanban-board {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .column {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            min-height: 500px;
+        }
+        
+        .column.drag-over {
+            background-color: #e8f4f8;
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+        }
+        
+        .column-header {
+            padding: 15px 20px;
+            font-weight: bold;
+            font-size: 18px;
+            border-bottom: 2px solid #ecf0f1;
+            text-align: center;
+        }
+        
+        .todo .column-header { color: #e74c3c; border-bottom-color: #e74c3c; }
+        .in-progress .column-header { color: #f39c12; border-bottom-color: #f39c12; }
+        .done .column-header { color: #27ae60; border-bottom-color: #27ae60; }
+        
+        .tasks {
+            padding: 15px;
+            min-height: 400px;
+        }
+        
+        .task {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 10px;
+            cursor: grab;
+            transition: all 0.2s;
+            user-select: none;
+        }
+        
+        .task:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        
+        .task.dragging {
+            opacity: 0.5;
+            transform: rotate(3deg);
+            cursor: grabbing;
+        }
+        
+        .task-title {
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #2c3e50;
+        }
+        
+        .task-description {
+            color: #7f8c8d;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        
+        .task-meta {
+            font-size: 12px;
+            color: #95a5a6;
+            margin-top: 8px;
+        }
+        
+        .empty-column {
+            text-align: center;
+            color: #bdc3c7;
+            font-style: italic;
+            margin-top: 50px;
+        }
+        
+        @media (max-width: 768px) {
+            .kanban-board {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>🧠 ADHD Kanban Organizer</h1>
+    
+    <div class="add-task-form">
+        <form method="post" action="{% url 'add_task' %}">
+            {% csrf_token %}
+            <input type="text" name="title" placeholder="Task title" required>
+            <textarea name="description" placeholder="Description (optional)" rows="3"></textarea>
+            <button type="submit">Add Task</button>
+        </form>
+    </div>
+    
+    <div class="kanban-board">
+        <div class="column todo" data-status="todo">
+            <div class="column-header">📋 To Do ({{ todo_tasks|length }})</div>
+            <div class="tasks">
+                {% for task in todo_tasks %}
+                <div class="task" data-task-id="{{ task.id }}" draggable="true">
+                    <div class="task-title">{{ task.title }}</div>
+                    {% if task.description %}
+                    <div class="task-description">{{ task.description }}</div>
+                    {% endif %}
+                    <div class="task-meta">Created: {{ task.created_at|date:"M d" }}</div>
+                </div>
+                {% empty %}
+                <div class="empty-column">No tasks yet. Add one above! 👆</div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <div class="column in-progress" data-status="in_progress">
+            <div class="column-header">⚡ In Progress ({{ in_progress_tasks|length }})</div>
+            <div class="tasks">
+                {% for task in in_progress_tasks %}
+                <div class="task" data-task-id="{{ task.id }}" draggable="true">
+                    <div class="task-title">{{ task.title }}</div>
+                    {% if task.description %}
+                    <div class="task-description">{{ task.description }}</div>
+                    {% endif %}
+                    <div class="task-meta">Started: {{ task.updated_at|date:"M d" }}</div>
+                </div>
+                {% empty %}
+                <div class="empty-column">Ready for your focus! 🎯</div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <div class="column done" data-status="done">
+            <div class="column-header">✅ Done ({{ done_tasks|length }})</div>
+            <div class="tasks">
+                {% for task in done_tasks %}
+                <div class="task" data-task-id="{{ task.id }}" draggable="true">
+                    <div class="task-title">{{ task.title }}</div>
+                    {% if task.description %}
+                    <div class="task-description">{{ task.description }}</div>
+                    {% endif %}
+                    <div class="task-meta">Completed: {{ task.updated_at|date:"M d" }}</div>
+                </div>
+                {% empty %}
+                <div class="empty-column">Completed tasks will appear here! 🎉</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let draggedTask = null;
+        
+        // Drag start
+        document.addEventListener('dragstart', function(e) {
+            if (e.target.classList.contains('task')) {
+                draggedTask = e.target;
+                e.target.classList.add('dragging');
+                
+                // Set drag data
+                e.dataTransfer.setData('text/plain', e.target.dataset.taskId);
+                e.dataTransfer.effectAllowed = 'move';
+            }
+        });
+        
+        // Drag end
+        document.addEventListener('dragend', function(e) {
+            if (e.target.classList.contains('task')) {
+                e.target.classList.remove('dragging');
+                // Remove drag-over styling from all columns
+                document.querySelectorAll('.column').forEach(col => {
+                    col.classList.remove('drag-over');
+                });
+            }
+        });
+        
+        // Drag over - allow drop
+        document.addEventListener('dragover', function(e) {
+            e.preventDefault(); // This allows the drop
+            e.dataTransfer.dropEffect = 'move';
+        });
+        
+        // Drag enter - visual feedback
+        document.addEventListener('dragenter', function(e) {
+            const column = e.target.closest('.column');
+            if (column && draggedTask) {
+                // Remove drag-over from all columns first
+                document.querySelectorAll('.column').forEach(col => {
+                    col.classList.remove('drag-over');
+                });
+                // Add to current column
+                column.classList.add('drag-over');
+            }
+        });
+        
+        // Drop
+        document.addEventListener('drop', function(e) {
+            e.preventDefault();
+            
+            const column = e.target.closest('.column');
+            const tasksContainer = column ? column.querySelector('.tasks') : null;
+            
+            if (tasksContainer && draggedTask) {
+                const newStatus = column.dataset.status;
+                const taskId = draggedTask.dataset.taskId;
+                
+                // Only proceed if status is actually changing
+                const currentColumn = draggedTask.closest('.column');
+                const currentStatus = currentColumn.dataset.status;
+                
+                if (newStatus !== currentStatus) {
+                    // Move the task visually
+                    tasksContainer.appendChild(draggedTask);
+                    
+                    // Remove empty messages if they exist
+                    const emptyMsg = tasksContainer.querySelector('.empty-column');
+                    if (emptyMsg) {
+                        emptyMsg.remove();
+                    }
+                    
+                    // Update the server
+                    fetch('/move-task/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            task_id: taskId,
+                            new_status: newStatus
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Update task counters by refreshing page
+                            setTimeout(() => window.location.reload(), 100);
+                        } else {
+                            // If server update failed, revert the move
+                            alert('Failed to move task. Please try again.');
+                            location.reload();
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Network error. Please try again.');
+                        location.reload();
+                    });
+                }
+            }
+            
+            // Clean up drag styling
+            document.querySelectorAll('.column').forEach(col => {
+                col.classList.remove('drag-over');
+            });
+        });
+        
+        // Touch support for mobile (basic)
+        let touchStartX, touchStartY;
+        
+        document.addEventListener('touchstart', function(e) {
+            if (e.target.closest('.task')) {
+                touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
+            }
+        }, {passive: true});
+        
+        document.addEventListener('touchmove', function(e) {
+            // Prevent scrolling when dragging tasks
+            if (e.target.closest('.task')) {
+                e.preventDefault();
+            }
+        }, {passive: false});
+    </script>
+</body>
+</html>
