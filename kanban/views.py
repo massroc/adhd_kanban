@@ -1,47 +1,69 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse, HttpRequest, HttpResponseBadRequest
+from django.views import View
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_protect
+from django.middleware.csrf import get_token
 from .models import Task
 import json
+import logging
 
-def kanban_board(request):
-    """Main kanban board view"""
-    todo_tasks = Task.objects.filter(status='todo')
-    in_progress_tasks = Task.objects.filter(status='in_progress')
-    done_tasks = Task.objects.filter(status='done')
-    
-    context = {
-        'todo_tasks': todo_tasks,
-        'in_progress_tasks': in_progress_tasks,
-        'done_tasks': done_tasks,
-    }
-    return render(request, 'kanban/board.html', context)
+logger = logging.getLogger(__name__)
 
-def add_task(request):
-    """Add a new task"""
-    if request.method == 'POST':
+class KanbanBoardView(View):
+    """Render the main Kanban board with grouped tasks."""
+
+    def get(self, request: HttpRequest):
+        todo_tasks = Task.objects.filter(status='todo')
+        in_progress_tasks = Task.objects.filter(status='in_progress')
+        done_tasks = Task.objects.filter(status='done')
+
+        context = {
+            'todo_tasks': todo_tasks,
+            'in_progress_tasks': in_progress_tasks,
+            'done_tasks': done_tasks,
+        }
+        # Ensure CSRF token is set for subsequent POSTs via form or JS
+        get_token(request)
+        return render(request, 'kanban/board.html', context)
+
+@method_decorator(csrf_protect, name='dispatch')
+class AddTaskView(View):
+    """Create a new Task from form submission."""
+
+    def post(self, request: HttpRequest):
         title = request.POST.get('title')
         description = request.POST.get('description', '')
-        if title:
-            Task.objects.create(
-                title=title,
-                description=description,
-                status='todo'
-            )
-    return redirect('kanban_board')
+        if not title:
+            logger.warning('Attempted to create task without title')
+            return redirect('kanban_board')
 
-@csrf_exempt
-def move_task(request):
-    """Move task between columns via AJAX"""
-    if request.method == 'POST':
-        data = json.loads(request.body)
+        Task.objects.create(
+            title=title,
+            description=description,
+            status='todo'
+        )
+        return redirect('kanban_board')
+
+@method_decorator(csrf_protect, name='dispatch')
+class MoveTaskView(View):
+    """Move task between columns via JSON POST."""
+
+    def post(self, request: HttpRequest):
+        try:
+            data = json.loads(request.body or '{}')
+        except json.JSONDecodeError:
+            logger.exception('Invalid JSON payload in move_task')
+            return HttpResponseBadRequest('Invalid JSON')
+
         task_id = data.get('task_id')
         new_status = data.get('new_status')
-        
+
+        if not task_id or new_status not in ['todo', 'in_progress', 'done']:
+            return JsonResponse({'success': False, 'error': 'invalid_payload'}, status=400)
+
         task = get_object_or_404(Task, id=task_id)
-        if new_status in ['todo', 'in_progress', 'done']:
-            task.status = new_status
-            task.save()
-            return JsonResponse({'success': True})
-    
-    return JsonResponse({'success': False})
+        task.status = new_status
+        task.save(update_fields=['status', 'updated_at'])
+        logger.info('Moved task %s to %s', task.id, new_status)
+        return JsonResponse({'success': True})

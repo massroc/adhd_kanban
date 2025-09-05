@@ -1,0 +1,22 @@
+This is a Django ADHD task management application.
+
+Code Standards:
+- Follow Django best practices and PEP 8
+- Use TDD - write tests first
+- Apply SOLID principles
+- Include comprehensive error handling
+- Add proper logging for debugging
+- Consider ADHD-specific accessibility needs
+
+Django Preferences:
+- Use class-based views with mixins
+- Prefer Django REST framework for APIs
+- Use factory_boy for test fixtures
+- Include docstrings for all models and views
+- Structure apps by feature, not by layer
+
+Testing:
+- Aim for 90%+ test coverage
+- Test edge cases and error conditions
+- Include integration tests for workflows
+- Mock external services appropriately

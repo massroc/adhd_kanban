@@ -150,23 +150,25 @@
     </style>
 </head>
 <body>
-    <h1>🧠 ADHD Kanban Organizer</h1>
+    <h1 id="page-title">🧠 ADHD Kanban Organizer</h1>
     
     <div class="add-task-form">
-        <form method="post" action="{% url 'add_task' %}">
+        <form method="post" action="{% url 'add_task' %}" aria-labelledby="page-title">
             {% csrf_token %}
-            <input type="text" name="title" placeholder="Task title" required>
-            <textarea name="description" placeholder="Description (optional)" rows="3"></textarea>
-            <button type="submit">Add Task</button>
+            <label for="title" class="sr-only">Task title</label>
+            <input id="title" type="text" name="title" placeholder="Task title" required aria-required="true">
+            <label for="description" class="sr-only">Description</label>
+            <textarea id="description" name="description" placeholder="Description (optional)" rows="3"></textarea>
+            <button type="submit" aria-label="Add task">Add Task</button>
         </form>
     </div>
     
     <div class="kanban-board">
-        <div class="column todo" data-status="todo">
-            <div class="column-header">📋 To Do ({{ todo_tasks|length }})</div>
-            <div class="tasks">
+        <div class="column todo" data-status="todo" role="region" aria-labelledby="todo-header">
+            <div id="todo-header" class="column-header">📋 To Do ({{ todo_tasks|length }})</div>
+            <div class="tasks" role="list">
                 {% for task in todo_tasks %}
-                <div class="task" data-task-id="{{ task.id }}" draggable="true">
+                <div class="task" data-task-id="{{ task.id }}" draggable="true" role="listitem" aria-grabbed="false">
                     <div class="task-title">{{ task.title }}</div>
                     {% if task.description %}
                     <div class="task-description">{{ task.description }}</div>
@@ -174,16 +176,16 @@
                     <div class="task-meta">Created: {{ task.created_at|date:"M d" }}</div>
                 </div>
                 {% empty %}
-                <div class="empty-column">No tasks yet. Add one above! 👆</div>
+                <div class="empty-column" role="note">No tasks yet. Add one above! 👆</div>
                 {% endfor %}
             </div>
         </div>
         
-        <div class="column in-progress" data-status="in_progress">
-            <div class="column-header">⚡ In Progress ({{ in_progress_tasks|length }})</div>
-            <div class="tasks">
+        <div class="column in-progress" data-status="in_progress" role="region" aria-labelledby="inprogress-header">
+            <div id="inprogress-header" class="column-header">⚡ In Progress ({{ in_progress_tasks|length }})</div>
+            <div class="tasks" role="list">
                 {% for task in in_progress_tasks %}
-                <div class="task" data-task-id="{{ task.id }}" draggable="true">
+                <div class="task" data-task-id="{{ task.id }}" draggable="true" role="listitem" aria-grabbed="false">
                     <div class="task-title">{{ task.title }}</div>
                     {% if task.description %}
                     <div class="task-description">{{ task.description }}</div>
@@ -191,16 +193,16 @@
                     <div class="task-meta">Started: {{ task.updated_at|date:"M d" }}</div>
                 </div>
                 {% empty %}
-                <div class="empty-column">Ready for your focus! 🎯</div>
+                <div class="empty-column" role="note">Ready for your focus! 🎯</div>
                 {% endfor %}
             </div>
         </div>
         
-        <div class="column done" data-status="done">
-            <div class="column-header">✅ Done ({{ done_tasks|length }})</div>
-            <div class="tasks">
+        <div class="column done" data-status="done" role="region" aria-labelledby="done-header">
+            <div id="done-header" class="column-header">✅ Done ({{ done_tasks|length }})</div>
+            <div class="tasks" role="list">
                 {% for task in done_tasks %}
-                <div class="task" data-task-id="{{ task.id }}" draggable="true">
+                <div class="task" data-task-id="{{ task.id }}" draggable="true" role="listitem" aria-grabbed="false">
                     <div class="task-title">{{ task.title }}</div>
                     {% if task.description %}
                     <div class="task-description">{{ task.description }}</div>
@@ -208,13 +210,19 @@
                     <div class="task-meta">Completed: {{ task.updated_at|date:"M d" }}</div>
                 </div>
                 {% empty %}
-                <div class="empty-column">Completed tasks will appear here! 🎉</div>
+                <div class="empty-column" role="note">Completed tasks will appear here! 🎉</div>
                 {% endfor %}
             </div>
         </div>
     </div>
 
     <script>
+        // helper for screen-reader only labels
+        (function(){
+            const style = document.createElement('style');
+            style.innerHTML = '.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}';
+            document.head.appendChild(style);
+        })();
         let draggedTask = null;
         
         // Drag start
@@ -222,6 +230,7 @@
             if (e.target.classList.contains('task')) {
                 draggedTask = e.target;
                 e.target.classList.add('dragging');
+                e.target.setAttribute('aria-grabbed', 'true');
                 
                 // Set drag data
                 e.dataTransfer.setData('text/plain', e.target.dataset.taskId);
@@ -233,6 +242,7 @@
         document.addEventListener('dragend', function(e) {
             if (e.target.classList.contains('task')) {
                 e.target.classList.remove('dragging');
+                e.target.setAttribute('aria-grabbed', 'false');
                 // Remove drag-over styling from all columns
                 document.querySelectorAll('.column').forEach(col => {
                     col.classList.remove('drag-over');
@@ -289,6 +299,7 @@
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
+                            'X-CSRFToken': getCookie('csrftoken')
                         },
                         body: JSON.stringify({
                             task_id: taskId,
@@ -336,6 +347,21 @@
                 e.preventDefault();
             }
         }, {passive: false});
+        // CSRF helper from Django docs
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
     </script>
 </body>
 </html>
