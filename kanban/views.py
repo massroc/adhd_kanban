@@ -30,19 +30,29 @@ class KanbanBoardView(View):
 @method_decorator(csrf_protect, name='dispatch')
 class AddTaskView(View):
     """Create a new Task from form submission."""
+    
+    VALID_STATUSES = ['todo', 'in_progress', 'done']
 
     def post(self, request: HttpRequest):
         title = request.POST.get('title')
         description = request.POST.get('description', '')
+        status = request.POST.get('status', 'todo')
+        
         if not title:
             logger.warning('Attempted to create task without title')
             return redirect('kanban_board')
+        
+        # Validate status - default to 'todo' if invalid
+        if status not in self.VALID_STATUSES:
+            logger.warning('Invalid status "%s" provided, defaulting to todo', status)
+            status = 'todo'
 
         Task.objects.create(
             title=title,
             description=description,
-            status='todo'
+            status=status
         )
+        logger.info('Created task "%s" with status "%s"', title, status)
         return redirect('kanban_board')
 
 @method_decorator(csrf_protect, name='dispatch')

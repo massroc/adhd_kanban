@@ -23,41 +23,141 @@
             margin-bottom: 30px;
         }
         
-        .add-task-form {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 30px;
-            max-width: 500px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-        
-        .add-task-form input, .add-task-form textarea {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 16px;
-        }
-        
-        .add-task-form button {
+        /* Add Task Button - Floating Action Button Style */
+        #add-task-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
             background: #3498db;
             color: white;
-            padding: 12px 24px;
             border: none;
-            border-radius: 4px;
+            font-size: 30px;
             cursor: pointer;
-            font-size: 16px;
-            transition: background 0.2s;
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.4);
+            transition: all 0.3s;
+            z-index: 100;
         }
         
-        .add-task-form button:hover {
+        #add-task-btn:hover {
+            background: #2980b9;
+            transform: scale(1.1);
+            box-shadow: 0 6px 16px rgba(52, 152, 219, 0.5);
+        }
+        
+        /* Modal Overlay */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-overlay.active {
+            display: flex;
+        }
+        
+        /* Modal Content */
+        .modal {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        .modal h2 {
+            margin-bottom: 20px;
+            color: #2c3e50;
+        }
+        
+        .modal label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+        
+        .modal input,
+        .modal textarea,
+        .modal select {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            font-family: inherit;
+        }
+        
+        .modal input:focus,
+        .modal textarea:focus,
+        .modal select:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+        
+        .modal textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+        
+        .modal-buttons button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+        
+        .btn-primary:hover {
             background: #2980b9;
         }
         
+        .btn-secondary {
+            background: #ecf0f1;
+            color: #555;
+        }
+        
+        .btn-secondary:hover {
+            background: #d5dbdb;
+        }
+        
+        /* Kanban Board */
         .kanban-board {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
@@ -152,17 +252,38 @@
 <body>
     <h1 id="page-title">🧠 ADHD Kanban Organizer</h1>
     
-    <div class="add-task-form">
-        <form method="post" action="{% url 'add_task' %}" aria-labelledby="page-title">
-            {% csrf_token %}
-            <label for="title" class="sr-only">Task title</label>
-            <input id="title" type="text" name="title" placeholder="Task title" required aria-required="true">
-            <label for="description" class="sr-only">Description</label>
-            <textarea id="description" name="description" placeholder="Description (optional)" rows="3"></textarea>
-            <button type="submit" aria-label="Add task">Add Task</button>
-        </form>
+    <!-- Floating Add Task Button -->
+    <button id="add-task-btn" aria-label="Add new task">+</button>
+    
+    <!-- Modal for Adding Tasks -->
+    <div class="modal-overlay" id="task-modal">
+        <div class="modal">
+            <h2>Add New Task</h2>
+            <form method="post" action="{% url 'add_task' %}" id="add-task-form">
+                {% csrf_token %}
+                
+                <label for="task-title">Title *</label>
+                <input id="task-title" type="text" name="title" placeholder="What needs to be done?" required>
+                
+                <label for="task-description">Description</label>
+                <textarea id="task-description" name="description" placeholder="Additional details (optional)" rows="4"></textarea>
+                
+                <label for="task-status">Column</label>
+                <select id="task-status" name="status">
+                    <option value="todo">📋 To Do</option>
+                    <option value="in_progress">⚡ In Progress</option>
+                    <option value="done">✅ Done</option>
+                </select>
+                
+                <div class="modal-buttons">
+                    <button type="button" class="btn-secondary" id="cancel-btn">Cancel</button>
+                    <button type="submit" class="btn-primary">Add Task</button>
+                </div>
+            </form>
+        </div>
     </div>
     
+    <!-- Kanban Board -->
     <div class="kanban-board">
         <div class="column todo" data-status="todo" role="region" aria-labelledby="todo-header">
             <div id="todo-header" class="column-header">📋 To Do ({{ todo_tasks|length }})</div>
@@ -176,7 +297,7 @@
                     <div class="task-meta">Created: {{ task.created_at|date:"M d" }}</div>
                 </div>
                 {% empty %}
-                <div class="empty-column" role="note">No tasks yet. Add one above! 👆</div>
+                <div class="empty-column" role="note">No tasks yet. Add one! 👆</div>
                 {% endfor %}
             </div>
         </div>
@@ -217,12 +338,41 @@
     </div>
 
     <script>
-        // helper for screen-reader only labels
-        (function(){
-            const style = document.createElement('style');
-            style.innerHTML = '.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}';
-            document.head.appendChild(style);
-        })();
+        // Modal Controls
+        const modal = document.getElementById('task-modal');
+        const addBtn = document.getElementById('add-task-btn');
+        const cancelBtn = document.getElementById('cancel-btn');
+        const form = document.getElementById('add-task-form');
+        
+        // Open modal
+        addBtn.addEventListener('click', () => {
+            modal.classList.add('active');
+            document.getElementById('task-title').focus();
+        });
+        
+        // Close modal
+        cancelBtn.addEventListener('click', () => {
+            modal.classList.remove('active');
+            form.reset();
+        });
+        
+        // Close modal when clicking overlay
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.classList.remove('active');
+                form.reset();
+            }
+        });
+        
+        // Close modal with Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modal.classList.contains('active')) {
+                modal.classList.remove('active');
+                form.reset();
+            }
+        });
+        
+        // Drag and Drop Functionality
         let draggedTask = null;
         
         // Drag start
@@ -232,7 +382,6 @@
                 e.target.classList.add('dragging');
                 e.target.setAttribute('aria-grabbed', 'true');
                 
-                // Set drag data
                 e.dataTransfer.setData('text/plain', e.target.dataset.taskId);
                 e.dataTransfer.effectAllowed = 'move';
             }
@@ -243,7 +392,6 @@
             if (e.target.classList.contains('task')) {
                 e.target.classList.remove('dragging');
                 e.target.setAttribute('aria-grabbed', 'false');
-                // Remove drag-over styling from all columns
                 document.querySelectorAll('.column').forEach(col => {
                     col.classList.remove('drag-over');
                 });
@@ -252,7 +400,7 @@
         
         // Drag over - allow drop
         document.addEventListener('dragover', function(e) {
-            e.preventDefault(); // This allows the drop
+            e.preventDefault();
             e.dataTransfer.dropEffect = 'move';
         });
         
@@ -260,11 +408,9 @@
         document.addEventListener('dragenter', function(e) {
             const column = e.target.closest('.column');
             if (column && draggedTask) {
-                // Remove drag-over from all columns first
                 document.querySelectorAll('.column').forEach(col => {
                     col.classList.remove('drag-over');
                 });
-                // Add to current column
                 column.classList.add('drag-over');
             }
         });
@@ -280,15 +426,12 @@
                 const newStatus = column.dataset.status;
                 const taskId = draggedTask.dataset.taskId;
                 
-                // Only proceed if status is actually changing
                 const currentColumn = draggedTask.closest('.column');
                 const currentStatus = currentColumn.dataset.status;
                 
                 if (newStatus !== currentStatus) {
-                    // Move the task visually
                     tasksContainer.appendChild(draggedTask);
                     
-                    // Remove empty messages if they exist
                     const emptyMsg = tasksContainer.querySelector('.empty-column');
                     if (emptyMsg) {
                         emptyMsg.remove();
@@ -309,10 +452,8 @@
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
-                            // Update task counters by refreshing page
                             setTimeout(() => window.location.reload(), 100);
                         } else {
-                            // If server update failed, revert the move
                             alert('Failed to move task. Please try again.');
                             location.reload();
                         }
@@ -325,28 +466,11 @@
                 }
             }
             
-            // Clean up drag styling
             document.querySelectorAll('.column').forEach(col => {
                 col.classList.remove('drag-over');
             });
         });
         
-        // Touch support for mobile (basic)
-        let touchStartX, touchStartY;
-        
-        document.addEventListener('touchstart', function(e) {
-            if (e.target.closest('.task')) {
-                touchStartX = e.touches[0].clientX;
-                touchStartY = e.touches[0].clientY;
-            }
-        }, {passive: true});
-        
-        document.addEventListener('touchmove', function(e) {
-            // Prevent scrolling when dragging tasks
-            if (e.target.closest('.task')) {
-                e.preventDefault();
-            }
-        }, {passive: false});
         // CSRF helper from Django docs
         function getCookie(name) {
             let cookieValue = null;
