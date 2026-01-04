@@ -79,6 +79,17 @@
             font-size: 12px;
             color: #7f8c8d;
         }
+        .column-add {
+            color: #3498db;
+            cursor: pointer;
+            margin-left: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .column:hover .column-add { opacity: 1; }
+        .column-add:hover { color: #2980b9; }
         .column-delete {
             color: #e74c3c;
             cursor: pointer;
@@ -130,6 +141,10 @@
             border-bottom: 1px solid #eee;
             font-size: 14px;
             background: #fafafa;
+            display: none;
+        }
+        .add-task-inline.active {
+            display: block;
         }
         .add-task-inline:focus {
             outline: none;
@@ -197,9 +212,10 @@
                 <span class="column-drag-handle" draggable="true">⋮</span>
                 <span class="column-title" ondblclick="editColumnName(this, {{ column.id }})">{{ column.name }}</span>
                 <span class="column-count">{{ column.tasks.count }}</span>
+                <span class="column-add" onclick="toggleAddTask(this)" title="Add task">+</span>
                 <span class="column-delete" onclick="deleteColumn({{ column.id }})">×</span>
             </div>
-            <input type="text" class="add-task-inline" placeholder="+ Add task..." data-column-id="{{ column.id }}" onkeydown="handleAddTask(event, this)">
+            <input type="text" class="add-task-inline" placeholder="Enter task title, press Enter" data-column-id="{{ column.id }}" onkeydown="handleAddTask(event, this)" onblur="hideAddTask(this)">
             <div class="tasks">
                 {% for task in column.tasks.all %}
                 <div class="task" data-task-id="{{ task.id }}" data-order="{{ task.order }}" draggable="true">
@@ -340,6 +356,26 @@
                 document.body.appendChild(form);
                 form.submit();
             }
+            if (event.key === 'Escape') {
+                input.value = '';
+                input.classList.remove('active');
+            }
+        }
+
+        function toggleAddTask(btn) {
+            const column = btn.closest('.column');
+            const input = column.querySelector('.add-task-inline');
+            input.classList.add('active');
+            input.focus();
+        }
+
+        function hideAddTask(input) {
+            // Small delay to allow click events to fire first
+            setTimeout(() => {
+                if (!input.value.trim()) {
+                    input.classList.remove('active');
+                }
+            }, 150);
         }
 
         // Edit modal - Enter to save (unless in textarea with Shift)
