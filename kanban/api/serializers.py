@@ -2,7 +2,7 @@
 Serializers for the Kanban API.
 
 Handles JSON serialization/deserialization and validation
-for Column and Task objects.
+for Column and Task objects. Includes user-scoped validation.
 """
 
 from rest_framework import serializers
@@ -35,12 +35,27 @@ class TaskSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'column', 'created_at', 'updated_at']
     
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Filter column choices to user's columns only
+        request = self.context.get('request')
+        if request and hasattr(request, 'user') and request.user.is_authenticated:
+            self.fields['column_id'].queryset = Column.objects.filter(user=request.user)
+    
     def validate_title(self, value: str) -> str:
         """Ensure title is not just whitespace."""
         cleaned = value.strip()
         if not cleaned:
             raise serializers.ValidationError("Title cannot be empty or whitespace only.")
         return cleaned
+    
+    def validate_column_id(self, value):
+        """Ensure column belongs to the current user."""
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            if value.user != request.user:
+                raise serializers.ValidationError("You can only add tasks to your own columns.")
+        return value
 
 
 class TaskCreateSerializer(serializers.ModelSerializer):
@@ -63,12 +78,27 @@ class TaskCreateSerializer(serializers.ModelSerializer):
             'order': {'required': False},
         }
     
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Filter column choices to user's columns only
+        request = self.context.get('request')
+        if request and hasattr(request, 'user') and request.user.is_authenticated:
+            self.fields['column_id'].queryset = Column.objects.filter(user=request.user)
+    
     def validate_title(self, value: str) -> str:
         """Ensure title is not just whitespace."""
         cleaned = value.strip()
         if not cleaned:
             raise serializers.ValidationError("Title cannot be empty or whitespace only.")
         return cleaned
+    
+    def validate_column_id(self, value):
+        """Ensure column belongs to the current user."""
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            if value.user != request.user:
+                raise serializers.ValidationError("You can only add tasks to your own columns.")
+        return value
 
 
 class TaskMoveSerializer(serializers.Serializer):
@@ -77,6 +107,21 @@ class TaskMoveSerializer(serializers.Serializer):
     """
     column_id = serializers.PrimaryKeyRelatedField(queryset=Column.objects.all())
     order = serializers.IntegerField(min_value=0, required=False)
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Filter column choices to user's columns only
+        request = self.context.get('request')
+        if request and hasattr(request, 'user') and request.user.is_authenticated:
+            self.fields['column_id'].queryset = Column.objects.filter(user=request.user)
+    
+    def validate_column_id(self, value):
+        """Ensure target column belongs to the current user."""
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            if value.user != request.user:
+                raise serializers.ValidationError("You can only move tasks to your own columns.")
+        return value
 
 
 class TaskReorderSerializer(serializers.Serializer):
@@ -185,3 +230,48 @@ class BoardSerializer(serializers.Serializer):
     Returns all columns with their tasks.
     """
     columns = ColumnWithTasksSerializer(many=True)
+
+
+# Authentication serializers
+
+class UserRegistrationSerializer(serializers.Serializer):
+    """Serializer for user registration."""
+    username = serializers.CharField(max_length=150)
+    email = serializers.EmailField(required=False, allow_blank=True)
+    password = serializers.CharField(write_only=True, min_length=8)
+    password_confirm = serializers.CharField(write_only=True)
+    
+    def validate_username(self, value):
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        if User.objects.filter(username=value).exists():
+            raise serializers.ValidationError("Username already exists.")
+        return value
+    
+    def validate(self, data):
+        if data['password'] != data['password_confirm']:
+            raise serializers.ValidationError({"password_confirm": "Passwords do not match."})
+        return data
+    
+    def create(self, validated_data):
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        user = User.objects.create_user(
+            username=validated_data['username'],
+            email=validated_data.get('email', ''),
+            password=validated_data['password']
+        )
+        return user
+
+
+class UserLoginSerializer(serializers.Serializer):
+    """Serializer for user login."""
+    username = serializers.CharField()
+    password = serializers.CharField(write_only=True)
+
+
+class UserSerializer(serializers.Serializer):
+    """Serializer for user info."""
+    id = serializers.IntegerField(read_only=True)
+    username = serializers.CharField(read_only=True)
+    email = serializers.EmailField(read_only=True)
