@@ -32,19 +32,22 @@
         .add-column-btn:hover { background: #27ae60; }
         .kanban-board {
             display: flex;
-            gap: 15px;
-            overflow-x: auto;
+            flex-wrap: nowrap;
+            gap: 10px;
+            max-width: 100%;
+            margin: 0 auto;
             padding-bottom: 20px;
         }
         .column {
+            flex: 1 1 0;
+            min-width: 0;
             background: white;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            min-width: 250px;
-            max-width: 280px;
-            flex-shrink: 0;
+            min-height: 500px;
             display: flex;
             flex-direction: column;
+            overflow: hidden;
         }
         .column.drag-over { background-color: #e8f4f8; }
         .column-header {
@@ -120,19 +123,21 @@
             color: #3498db;
         }
         .task:hover .task-edit { opacity: 1; }
-        .add-task-btn {
+        .add-task-inline {
             width: 100%;
             padding: 10px;
-            background: none;
-            border: 2px dashed #bdc3c7;
-            border-radius: 6px;
-            color: #7f8c8d;
-            cursor: pointer;
-            margin-top: 8px;
+            border: none;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+            background: #fafafa;
         }
-        .add-task-btn:hover {
-            border-color: #3498db;
-            color: #3498db;
+        .add-task-inline:focus {
+            outline: none;
+            background: white;
+            border-bottom-color: #3498db;
+        }
+        .add-task-inline::placeholder {
+            color: #bdc3c7;
         }
         .modal {
             display: none;
@@ -194,6 +199,7 @@
                 <span class="column-count">{{ column.tasks.count }}</span>
                 <span class="column-delete" onclick="deleteColumn({{ column.id }})">×</span>
             </div>
+            <input type="text" class="add-task-inline" placeholder="+ Add task..." data-column-id="{{ column.id }}" onkeydown="handleAddTask(event, this)">
             <div class="tasks">
                 {% for task in column.tasks.all %}
                 <div class="task" data-task-id="{{ task.id }}" data-order="{{ task.order }}" draggable="true">
@@ -205,31 +211,16 @@
                 </div>
                 {% endfor %}
             </div>
-            <button class="add-task-btn" onclick="showAddTaskModal({{ column.id }})">+ Add Task</button>
         </div>
         {% endfor %}
-    </div>
-
-    <!-- Add Task Modal -->
-    <div class="modal" id="addTaskModal">
-        <div class="modal-content">
-            <h2>Add Task</h2>
-            <input type="text" id="newTaskTitle" placeholder="Task title">
-            <textarea id="newTaskDescription" placeholder="Description (optional)" rows="3"></textarea>
-            <input type="hidden" id="newTaskColumnId">
-            <div class="modal-actions">
-                <button class="btn-secondary" onclick="closeModal('addTaskModal')">Cancel</button>
-                <button class="btn-primary" onclick="addTask()">Add</button>
-            </div>
-        </div>
     </div>
 
     <!-- Edit Task Modal -->
     <div class="modal" id="editTaskModal">
         <div class="modal-content">
             <h2>Edit Task</h2>
-            <input type="text" id="editTaskTitle" placeholder="Task title">
-            <textarea id="editTaskDescription" placeholder="Description" rows="3"></textarea>
+            <input type="text" id="editTaskTitle" placeholder="Task title" onkeydown="handleEditKeydown(event)">
+            <textarea id="editTaskDescription" placeholder="Description" rows="3" onkeydown="handleEditKeydown(event)"></textarea>
             <input type="hidden" id="editTaskId">
             <div class="modal-actions">
                 <button class="btn-secondary" onclick="closeModal('editTaskModal')">Cancel</button>
@@ -330,13 +321,35 @@
             });
         }
 
-        // Modal functions
-        function showAddTaskModal(columnId) {
-            document.getElementById('newTaskColumnId').value = columnId;
-            document.getElementById('newTaskTitle').value = '';
-            document.getElementById('newTaskDescription').value = '';
-            document.getElementById('addTaskModal').classList.add('active');
-            document.getElementById('newTaskTitle').focus();
+        // Inline add task - press Enter to add
+        function handleAddTask(event, input) {
+            if (event.key === 'Enter') {
+                const title = input.value.trim();
+                if (!title) return;
+                
+                const columnId = input.dataset.columnId;
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/add-task/';
+                form.innerHTML = `
+                    <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
+                    <input type="hidden" name="title" value="${title}">
+                    <input type="hidden" name="description" value="">
+                    <input type="hidden" name="column_id" value="${columnId}">
+                `;
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+
+        // Edit modal - Enter to save (unless in textarea with Shift)
+        function handleEditKeydown(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                if (event.target.tagName !== 'TEXTAREA') {
+                    event.preventDefault();
+                    saveTask();
+                }
+            }
         }
 
         function showEditTaskModal(taskId, title, description) {
@@ -344,6 +357,7 @@
             document.getElementById('editTaskTitle').value = title;
             document.getElementById('editTaskDescription').value = description;
             document.getElementById('editTaskModal').classList.add('active');
+            document.getElementById('editTaskTitle').focus();
         }
 
         function showAddColumnModal() {
@@ -354,26 +368,6 @@
 
         function closeModal(id) {
             document.getElementById(id).classList.remove('active');
-        }
-
-        function addTask() {
-            const title = document.getElementById('newTaskTitle').value.trim();
-            const description = document.getElementById('newTaskDescription').value.trim();
-            const columnId = document.getElementById('newTaskColumnId').value;
-            
-            if (!title) return;
-            
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = '/add-task/';
-            form.innerHTML = `
-                <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
-                <input type="hidden" name="title" value="${title}">
-                <input type="hidden" name="description" value="${description}">
-                <input type="hidden" name="column_id" value="${columnId}">
-            `;
-            document.body.appendChild(form);
-            form.submit();
         }
 
         function saveTask() {
