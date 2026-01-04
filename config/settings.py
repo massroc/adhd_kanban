@@ -29,6 +29,12 @@ CSRF_TRUSTED_ORIGINS = os.getenv(
     'http://localhost:8000,http://127.0.0.1:8000'
 ).split(',')
 
+# For development - allow any localhost port
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^http://localhost:\d+$",
+    r"^http://127\.0\.0\.1:\d+$",
+]
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
