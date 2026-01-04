@@ -344,27 +344,46 @@
             position: relative;
         }
         
-        .task:hover .task-edit {
+        .task:hover .task-controls {
             opacity: 1;
         }
         
-        .task-edit {
+        .task-controls {
             position: absolute;
             top: 6px;
             right: 6px;
+            display: flex;
+            gap: 4px;
+            opacity: 0;
+            transition: all 0.2s;
+        }
+        
+        .task-edit,
+        .task-delete {
             background: transparent;
-            color: #95a5a6;
             border: none;
             border-radius: 3px;
             padding: 2px 5px;
             cursor: pointer;
             font-size: 12px;
-            opacity: 0;
             transition: all 0.2s;
+        }
+        
+        .task-edit {
+            color: #95a5a6;
         }
         
         .task-edit:hover {
             background: #3498db;
+            color: white;
+        }
+        
+        .task-delete {
+            color: #e74c3c;
+        }
+        
+        .task-delete:hover {
+            background: #e74c3c;
             color: white;
         }
         
@@ -390,7 +409,7 @@
             font-size: 13px;
             word-wrap: break-word;
             overflow-wrap: break-word;
-            padding-right: 20px;
+            padding-right: 45px;
         }
         
         .task-description {
@@ -512,7 +531,10 @@
             <div class="tasks" role="list">
                 {% for task in column.tasks.all %}
                 <div class="task" data-task-id="{{ task.id }}" data-order="{{ task.order }}" draggable="true" role="listitem" aria-grabbed="false">
-                    <button class="task-edit" data-task-id="{{ task.id }}" aria-label="Edit task" title="Edit task">✎</button>
+                    <div class="task-controls">
+                        <button class="task-edit" data-task-id="{{ task.id }}" aria-label="Edit task" title="Edit task">✎</button>
+                        <button class="task-delete" data-task-id="{{ task.id }}" aria-label="Delete task" title="Delete task">×</button>
+                    </div>
                     <div class="task-title">{{ task.title }}</div>
                     {% if task.description %}
                     <div class="task-description">{{ task.description }}</div>
@@ -528,6 +550,9 @@
     </div>
 
     <script>
+        // API base URL
+        const API_BASE = '/api/v1';
+        
         // Get CSRF token
         function getCookie(name) {
             let cookieValue = null;
@@ -544,13 +569,48 @@
             return cookieValue;
         }
         
+        // Common fetch options for API calls
+        function apiHeaders() {
+            return {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            };
+        }
+        
         // Column count management
-        const totalColumns = {{ columns|length }};
+        let currentColumnCount = {{ columns|length }};
         const MAX_COLUMNS = 12;
         
-        if (totalColumns >= MAX_COLUMNS) {
-            document.getElementById('add-column-btn').disabled = true;
-            document.getElementById('column-limit-msg').classList.add('show');
+        function updateColumnLimitUI() {
+            const addBtn = document.getElementById('add-column-btn');
+            const limitMsg = document.getElementById('column-limit-msg');
+            if (currentColumnCount >= MAX_COLUMNS) {
+                addBtn.disabled = true;
+                limitMsg.classList.add('show');
+            } else {
+                addBtn.disabled = false;
+                limitMsg.classList.remove('show');
+            }
+        }
+        
+        updateColumnLimitUI();
+        
+        // Helper: Update column task count display
+        function updateColumnTaskCount(columnElement) {
+            const tasksContainer = columnElement.querySelector('.tasks');
+            const taskCount = tasksContainer.querySelectorAll('.task').length;
+            const columnTitle = columnElement.querySelector('.column-title');
+            const titleText = columnTitle.textContent.split('(')[0].trim();
+            columnTitle.textContent = `${titleText} (${taskCount})`;
+            
+            // Add empty message if no tasks left
+            if (taskCount === 0 && !tasksContainer.querySelector('.empty-column')) {
+                const emptyDiv = document.createElement('div');
+                emptyDiv.className = 'empty-column';
+                emptyDiv.setAttribute('role', 'note');
+                emptyDiv.textContent = 'No tasks yet';
+                tasksContainer.appendChild(emptyDiv);
+            }
         }
         
         // Task Modal Controls
@@ -583,7 +643,7 @@
         const columnForm = document.getElementById('add-column-form');
         
         addColumnBtn.addEventListener('click', () => {
-            if (totalColumns < MAX_COLUMNS) {
+            if (currentColumnCount < MAX_COLUMNS) {
                 columnModal.classList.add('active');
                 document.getElementById('column-name').focus();
             }
@@ -638,7 +698,7 @@
             });
         });
         
-        // Handle edit form submission
+        // Handle edit form submission - uses REST API PATCH
         editTaskForm.addEventListener('submit', function(e) {
             e.preventDefault();
             
@@ -648,51 +708,77 @@
             
             if (!title) return;
             
-            fetch(`/edit-task/${taskId}/`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken')
-                },
+            fetch(`${API_BASE}/tasks/${taskId}/`, {
+                method: 'PATCH',
+                headers: apiHeaders(),
                 body: JSON.stringify({
                     title: title,
                     description: description
                 })
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) throw new Error('Failed to update task');
+                return response.json();
+            })
             .then(data => {
-                if (data.success) {
-                    // Update the task card without reloading
-                    const taskCard = document.querySelector(`.task[data-task-id="${taskId}"]`);
-                    const titleEl = taskCard.querySelector('.task-title');
-                    let descEl = taskCard.querySelector('.task-description');
-                    
-                    titleEl.textContent = data.task.title;
-                    
-                    if (data.task.description) {
-                        if (descEl) {
-                            descEl.textContent = data.task.description;
-                        } else {
-                            // Create description element if it doesn't exist
-                            descEl = document.createElement('div');
-                            descEl.className = 'task-description';
-                            descEl.textContent = data.task.description;
-                            titleEl.after(descEl);
-                        }
-                    } else if (descEl) {
-                        // Remove description element if description is empty
-                        descEl.remove();
+                // Update the task card without reloading
+                const taskCard = document.querySelector(`.task[data-task-id="${taskId}"]`);
+                const titleEl = taskCard.querySelector('.task-title');
+                let descEl = taskCard.querySelector('.task-description');
+                
+                titleEl.textContent = data.title;
+                
+                if (data.description) {
+                    if (descEl) {
+                        descEl.textContent = data.description;
+                    } else {
+                        descEl = document.createElement('div');
+                        descEl.className = 'task-description';
+                        descEl.textContent = data.description;
+                        titleEl.after(descEl);
                     }
-                    
-                    editTaskModal.classList.remove('active');
-                    editTaskForm.reset();
-                } else {
-                    alert('Failed to save changes');
+                } else if (descEl) {
+                    descEl.remove();
                 }
+                
+                editTaskModal.classList.remove('active');
+                editTaskForm.reset();
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Network error');
+                alert('Failed to save changes');
+            });
+        });
+        
+        // Delete Task - uses REST API DELETE
+        document.querySelectorAll('.task-delete').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                e.preventDefault();
+                
+                const taskCard = this.closest('.task');
+                const taskId = this.dataset.taskId;
+                const taskTitle = taskCard.querySelector('.task-title').textContent.trim();
+                
+                if (confirm(`Delete "${taskTitle}"?`)) {
+                    fetch(`${API_BASE}/tasks/${taskId}/`, {
+                        method: 'DELETE',
+                        headers: apiHeaders()
+                    })
+                    .then(response => {
+                        if (!response.ok && response.status !== 204) {
+                            throw new Error('Failed to delete task');
+                        }
+                        
+                        const column = taskCard.closest('.column');
+                        taskCard.remove();
+                        updateColumnTaskCount(column);
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Failed to delete task');
+                    });
+                }
             });
         });
         
@@ -714,9 +800,9 @@
             }
         });
         
-        // Rename Column - Double click to edit
-        document.querySelectorAll('.column-title').forEach(title => {
-            title.addEventListener('dblclick', function(e) {
+        // Rename Column - Double click to edit, uses REST API PATCH
+        function attachColumnTitleHandler(titleElement) {
+            titleElement.addEventListener('dblclick', function(e) {
                 e.stopPropagation();
                 const columnId = this.dataset.columnId;
                 const currentName = this.textContent.split('(')[0].trim();
@@ -730,25 +816,41 @@
                 input.focus();
                 input.select();
                 
+                function restoreTitle(name) {
+                    const column = document.querySelector(`.column[data-column-id="${columnId}"]`);
+                    const taskCount = column.querySelectorAll('.task').length;
+                    
+                    const newTitle = document.createElement('div');
+                    newTitle.className = 'column-title';
+                    newTitle.dataset.columnId = columnId;
+                    newTitle.textContent = `${name} (${taskCount})`;
+                    
+                    input.replaceWith(newTitle);
+                    attachColumnTitleHandler(newTitle);
+                }
+                
                 function saveRename() {
                     const newName = input.value.trim();
                     if (newName && newName !== currentName) {
-                        const formData = new FormData();
-                        formData.append('name', newName);
-                        formData.append('csrfmiddlewaretoken', getCookie('csrftoken'));
-                        
-                        fetch(`/rename-column/${columnId}/`, {
-                            method: 'POST',
-                            body: formData
+                        fetch(`${API_BASE}/columns/${columnId}/`, {
+                            method: 'PATCH',
+                            headers: apiHeaders(),
+                            body: JSON.stringify({ name: newName })
                         })
-                        .then(() => window.location.reload())
+                        .then(response => {
+                            if (!response.ok) throw new Error('Failed to rename column');
+                            return response.json();
+                        })
+                        .then(data => {
+                            restoreTitle(data.name);
+                        })
                         .catch(error => {
                             console.error('Error:', error);
                             alert('Failed to rename column');
-                            window.location.reload();
+                            restoreTitle(currentName);
                         });
                     } else {
-                        window.location.reload();
+                        restoreTitle(currentName);
                     }
                 }
                 
@@ -756,30 +858,50 @@
                 input.addEventListener('keydown', (e) => {
                     if (e.key === 'Enter') {
                         e.preventDefault();
-                        saveRename();
+                        input.blur();
                     } else if (e.key === 'Escape') {
-                        window.location.reload();
+                        restoreTitle(currentName);
                     }
                 });
             });
-        });
+        }
         
-        // Delete Column
+        // Attach handlers to all column titles
+        document.querySelectorAll('.column-title').forEach(attachColumnTitleHandler);
+        
+        // Delete Column - uses REST API DELETE
         document.querySelectorAll('.delete-column').forEach(btn => {
             btn.addEventListener('click', function(e) {
                 e.stopPropagation();
                 const columnId = this.dataset.columnId;
-                const columnName = this.closest('.column-header').querySelector('.column-title').textContent.split('(')[0].trim();
+                const columnElement = this.closest('.column');
+                const columnName = columnElement.querySelector('.column-title').textContent.split('(')[0].trim();
                 
-                if (confirm(`Delete "${columnName}"? Tasks will move to the first column.`)) {
-                    const formData = new FormData();
-                    formData.append('csrfmiddlewaretoken', getCookie('csrftoken'));
-                    
-                    fetch(`/delete-column/${columnId}/`, {
-                        method: 'POST',
-                        body: formData
+                if (currentColumnCount <= 1) {
+                    alert('Cannot delete the last column');
+                    return;
+                }
+                
+                const taskCount = columnElement.querySelectorAll('.task').length;
+                let confirmMsg = `Delete "${columnName}"?`;
+                if (taskCount > 0) {
+                    confirmMsg = `Delete "${columnName}"?\n\n⚠️ This will also delete ${taskCount} task${taskCount === 1 ? '' : 's'} in this column.`;
+                }
+                
+                if (confirm(confirmMsg)) {
+                    fetch(`${API_BASE}/columns/${columnId}/`, {
+                        method: 'DELETE',
+                        headers: apiHeaders()
                     })
-                    .then(() => window.location.reload())
+                    .then(response => {
+                        if (!response.ok && response.status !== 204) {
+                            throw new Error('Failed to delete column');
+                        }
+                        
+                        columnElement.remove();
+                        currentColumnCount--;
+                        updateColumnLimitUI();
+                    })
                     .catch(error => {
                         console.error('Error:', error);
                         alert('Failed to delete column');
@@ -788,7 +910,7 @@
             });
         });
         
-        // Column Drag and Drop - Reorder columns
+        // Column Drag and Drop
         let draggedColumn = null;
         let draggedTask = null;
         
@@ -797,10 +919,8 @@
                 const header = this.closest('.column-header');
                 const column = this.closest('.column');
                 
-                // Make the header draggable when mousedown on handle
                 header.setAttribute('draggable', 'true');
                 
-                // Set up drag start
                 const dragStartHandler = function(e) {
                     draggedColumn = column;
                     column.classList.add('column-dragging');
@@ -810,14 +930,12 @@
                 
                 header.addEventListener('dragstart', dragStartHandler, { once: true });
                 
-                // Clean up on mouseup
                 document.addEventListener('mouseup', function() {
                     header.removeAttribute('draggable');
                 }, { once: true });
             });
         });
         
-        // Column drag end
         document.addEventListener('dragend', function(e) {
             if (e.target.classList.contains('column-header')) {
                 const column = e.target.closest('.column');
@@ -831,7 +949,6 @@
             }
         });
         
-        // Allow dropping on columns
         document.querySelectorAll('.column').forEach(column => {
             column.addEventListener('dragover', function(e) {
                 if (draggedColumn && draggedColumn !== this && !draggedTask) {
@@ -868,27 +985,20 @@
                         this.parentNode.insertBefore(draggedColumn, this);
                     }
                     
-                    // Update order on server
+                    // Update order via REST API
                     const newOrder = Array.from(board.querySelectorAll('.column')).map((col, index) => ({
-                        id: col.dataset.columnId,
+                        id: parseInt(col.dataset.columnId),
                         order: index + 1
                     }));
                     
-                    fetch('/reorder-columns/', {
+                    fetch(`${API_BASE}/reorder-columns/`, {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': getCookie('csrftoken')
-                        },
-                        body: JSON.stringify({
-                            column_orders: newOrder
-                        })
+                        headers: apiHeaders(),
+                        body: JSON.stringify({ column_orders: newOrder })
                     })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (!data.success) {
-                            console.error('Failed to save column order');
-                        }
+                    .then(response => {
+                        if (!response.ok) throw new Error('Failed to reorder columns');
+                        return response.json();
                     })
                     .catch(error => {
                         console.error('Error:', error);
@@ -932,7 +1042,6 @@
         });
         
         document.addEventListener('dragenter', function(e) {
-            // Highlight task drop zones
             if (draggedTask && !draggedColumn) {
                 const targetTask = e.target.closest('.task');
                 if (targetTask && targetTask !== draggedTask) {
@@ -943,7 +1052,6 @@
                 }
             }
             
-            // Highlight column drop zones
             const column = e.target.closest('.column');
             if (column && draggedTask && !draggedColumn) {
                 document.querySelectorAll('.column').forEach(col => {
@@ -970,48 +1078,35 @@
                 const currentColumn = draggedTask.closest('.column');
                 const currentColumnId = currentColumn.dataset.columnId;
                 
-                // Check if dropping within same column (reordering) or different column (moving)
                 if (newColumnId === currentColumnId) {
                     // Reordering within same column
                     const dropTarget = e.target.closest('.task');
                     
                     if (dropTarget && dropTarget !== draggedTask) {
-                        // Insert before or after the target task
                         const tasksInColumn = Array.from(tasksContainer.querySelectorAll('.task'));
                         const draggedIndex = tasksInColumn.indexOf(draggedTask);
                         const targetIndex = tasksInColumn.indexOf(dropTarget);
                         
                         if (draggedIndex < targetIndex) {
-                            // Moving down - insert after target
                             dropTarget.parentNode.insertBefore(draggedTask, dropTarget.nextSibling);
                         } else {
-                            // Moving up - insert before target
                             dropTarget.parentNode.insertBefore(draggedTask, dropTarget);
                         }
                         
-                        // Update task order on server
+                        // Update via REST API
                         const newOrder = Array.from(tasksContainer.querySelectorAll('.task')).map((task, index) => ({
-                            id: task.dataset.taskId,
+                            id: parseInt(task.dataset.taskId),
                             order: index + 1
                         }));
                         
-                        fetch('/reorder-tasks/', {
+                        fetch(`${API_BASE}/reorder-tasks/`, {
                             method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRFToken': getCookie('csrftoken')
-                            },
-                            body: JSON.stringify({
-                                task_orders: newOrder,
-                                column_id: newColumnId
-                            })
+                            headers: apiHeaders(),
+                            body: JSON.stringify({ task_orders: newOrder })
                         })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (!data.success) {
-                                console.error('Failed to save task order');
-                                location.reload();
-                            }
+                        .then(response => {
+                            if (!response.ok) throw new Error('Failed to reorder tasks');
+                            return response.json();
                         })
                         .catch(error => {
                             console.error('Error:', error);
@@ -1021,12 +1116,8 @@
                 } else {
                     // Moving to different column
                     const oldColumn = draggedTask.closest('.column');
-                    const oldTasksContainer = oldColumn.querySelector('.tasks');
-                    
-                    // Get the order of the dragged task
                     const draggedTaskOrder = parseInt(draggedTask.dataset.order);
                     
-                    // Find the correct position to insert based on order
                     const tasksInNewColumn = Array.from(tasksContainer.querySelectorAll('.task'));
                     let insertBeforeTask = null;
                     
@@ -1038,7 +1129,6 @@
                         }
                     }
                     
-                    // Insert at correct position or append if it should be last
                     if (insertBeforeTask) {
                         tasksContainer.insertBefore(draggedTask, insertBeforeTask);
                     } else {
@@ -1050,48 +1140,22 @@
                         emptyMsg.remove();
                     }
                     
-                    // Update counts immediately
-                    function updateColumnCount(columnElement) {
-                        const taskCount = columnElement.querySelectorAll('.task').length;
-                        const columnTitle = columnElement.querySelector('.column-title');
-                        const titleText = columnTitle.textContent.split('(')[0].trim();
-                        columnTitle.textContent = `${titleText} (${taskCount})`;
-                        
-                        // Add empty message if no tasks
-                        const container = columnElement.querySelector('.tasks');
-                        if (taskCount === 0 && !container.querySelector('.empty-column')) {
-                            const emptyDiv = document.createElement('div');
-                            emptyDiv.className = 'empty-column';
-                            emptyDiv.setAttribute('role', 'note');
-                            emptyDiv.textContent = 'No tasks yet';
-                            container.appendChild(emptyDiv);
-                        }
-                    }
+                    updateColumnTaskCount(oldColumn);
+                    updateColumnTaskCount(column);
                     
-                    updateColumnCount(oldColumn);
-                    updateColumnCount(column);
-                    
-                    fetch('/move-task/', {
+                    // Move via REST API
+                    fetch(`${API_BASE}/tasks/${taskId}/move/`, {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': getCookie('csrftoken')
-                        },
-                        body: JSON.stringify({
-                            task_id: taskId,
-                            column_id: newColumnId
-                        })
+                        headers: apiHeaders(),
+                        body: JSON.stringify({ column_id: parseInt(newColumnId) })
                     })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (!data.success) {
-                            alert('Failed to move task');
-                            location.reload();
-                        }
+                    .then(response => {
+                        if (!response.ok) throw new Error('Failed to move task');
+                        return response.json();
                     })
                     .catch(error => {
                         console.error('Error:', error);
-                        alert('Network error');
+                        alert('Failed to move task');
                         location.reload();
                     });
                 }
