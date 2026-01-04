@@ -17,10 +17,56 @@
             padding: 20px;
         }
         
-        h1 {
+        .header {
             text-align: center;
-            color: #2c3e50;
             margin-bottom: 30px;
+            position: relative;
+        }
+        
+        h1 {
+            color: #2c3e50;
+        }
+        
+        /* Subtle Column Management Button */
+        .column-settings {
+            position: absolute;
+            top: 0;
+            right: 20px;
+        }
+        
+        #add-column-btn {
+            background: transparent;
+            color: #95a5a6;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        #add-column-btn:hover {
+            color: #27ae60;
+            border-color: #27ae60;
+            background: #eafaf1;
+        }
+        
+        #add-column-btn:disabled {
+            color: #bdc3c7;
+            border-color: #ecf0f1;
+            cursor: not-allowed;
+            background: transparent;
+        }
+        
+        .column-limit-msg {
+            font-size: 12px;
+            color: #e74c3c;
+            display: none;
+            margin-left: 10px;
+        }
+        
+        .column-limit-msg.show {
+            display: inline;
         }
         
         /* Add Task Button - Floating Action Button Style */
@@ -157,20 +203,29 @@
             background: #d5dbdb;
         }
         
-        /* Kanban Board */
+        /* Kanban Board - Single continuous row */
         .kanban-board {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 20px;
-            max-width: 1200px;
+            display: flex;
+            flex-wrap: nowrap;
+            gap: 10px;
+            max-width: 100%;
             margin: 0 auto;
+            padding-bottom: 20px;
         }
         
         .column {
+            flex: 1 1 0;
+            min-width: 0;
             background: white;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             min-height: 500px;
+            transition: box-shadow 0.2s;
+            overflow: hidden;
+        }
+        
+        .column:hover .column-controls {
+            opacity: 1;
         }
         
         .column.drag-over {
@@ -178,20 +233,102 @@
             box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
         }
         
-        .column-header {
-            padding: 15px 20px;
-            font-weight: bold;
-            font-size: 18px;
-            border-bottom: 2px solid #ecf0f1;
-            text-align: center;
+        .column.column-dragging {
+            opacity: 0.4;
         }
         
-        .todo .column-header { color: #e74c3c; border-bottom-color: #e74c3c; }
-        .in-progress .column-header { color: #f39c12; border-bottom-color: #f39c12; }
-        .done .column-header { color: #27ae60; border-bottom-color: #27ae60; }
+        .column.column-drag-over {
+            border-left: 4px solid #3498db;
+        }
+        
+        .column-header {
+            padding: 10px 12px;
+            font-weight: bold;
+            font-size: 14px;
+            border-bottom: 2px solid #ecf0f1;
+            text-align: center;
+            color: #2c3e50;
+            border-bottom-color: #3498db;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        
+        .drag-handle {
+            font-size: 12px;
+            color: #bdc3c7;
+            cursor: grab;
+            user-select: none;
+            opacity: 0.5;
+            transition: opacity 0.2s;
+            flex-shrink: 0;
+        }
+        
+        .column:hover .drag-handle {
+            opacity: 1;
+            color: #95a5a6;
+        }
+        
+        .drag-handle:hover {
+            color: #3498db;
+        }
+        
+        .column-title {
+            flex: 1;
+            min-width: 0;
+            cursor: pointer;
+            padding: 4px 6px;
+            border-radius: 4px;
+            transition: background 0.2s;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .column-title:hover {
+            background: #ecf0f1;
+        }
+        
+        .column-title-input {
+            flex: 1;
+            border: 2px solid #3498db;
+            padding: 4px 8px;
+            font-size: 16px;
+            font-weight: bold;
+            text-align: center;
+            font-family: inherit;
+            border-radius: 4px;
+        }
+        
+        .column-controls {
+            position: absolute;
+            right: 4px;
+            top: 50%;
+            transform: translateY(-50%);
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        
+        .delete-column {
+            background: transparent;
+            color: #e74c3c;
+            border: none;
+            border-radius: 3px;
+            padding: 2px 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        
+        .delete-column:hover {
+            background: #e74c3c;
+            color: white;
+        }
         
         .tasks {
-            padding: 15px;
+            padding: 10px;
             min-height: 400px;
         }
         
@@ -199,11 +336,36 @@
             background: #f8f9fa;
             border: 1px solid #e9ecef;
             border-radius: 6px;
-            padding: 15px;
-            margin-bottom: 10px;
+            padding: 10px;
+            margin-bottom: 8px;
             cursor: grab;
             transition: all 0.2s;
             user-select: none;
+            position: relative;
+        }
+        
+        .task:hover .task-edit {
+            opacity: 1;
+        }
+        
+        .task-edit {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            background: transparent;
+            color: #95a5a6;
+            border: none;
+            border-radius: 3px;
+            padding: 2px 5px;
+            cursor: pointer;
+            font-size: 12px;
+            opacity: 0;
+            transition: all 0.2s;
+        }
+        
+        .task-edit:hover {
+            background: #3498db;
+            color: white;
         }
         
         .task:hover {
@@ -217,40 +379,52 @@
             cursor: grabbing;
         }
         
+        .task.drag-over-task {
+            border-top: 3px solid #3498db;
+        }
+        
         .task-title {
             font-weight: bold;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             color: #2c3e50;
+            font-size: 13px;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            padding-right: 20px;
         }
         
         .task-description {
             color: #7f8c8d;
-            font-size: 14px;
+            font-size: 12px;
             line-height: 1.4;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
         }
         
         .task-meta {
-            font-size: 12px;
+            font-size: 10px;
             color: #95a5a6;
-            margin-top: 8px;
+            margin-top: 6px;
         }
         
         .empty-column {
             text-align: center;
             color: #bdc3c7;
+            font-size: 12px;
             font-style: italic;
             margin-top: 50px;
-        }
-        
-        @media (max-width: 768px) {
-            .kanban-board {
-                grid-template-columns: 1fr;
-            }
+            padding: 0 5px;
         }
     </style>
 </head>
 <body>
-    <h1 id="page-title">🧠 ADHD Kanban Organizer</h1>
+    <div class="header">
+        <h1 id="page-title">🧠 ADHD Kanban Organizer</h1>
+        <div class="column-settings">
+            <button id="add-column-btn" title="Add new column">+ Column</button>
+            <span class="column-limit-msg" id="column-limit-msg">Max 12</span>
+        </div>
+    </div>
     
     <!-- Floating Add Task Button -->
     <button id="add-task-btn" aria-label="Add new task">+</button>
@@ -263,16 +437,16 @@
                 {% csrf_token %}
                 
                 <label for="task-title">Title *</label>
-                <input id="task-title" type="text" name="title" placeholder="What needs to be done?" required>
+                <input id="task-title" type="text" name="title" placeholder="What needs to be done?" required aria-required="true">
                 
                 <label for="task-description">Description</label>
-                <textarea id="task-description" name="description" placeholder="Additional details (optional)" rows="4"></textarea>
+                <textarea id="task-description" name="description" placeholder="Additional details (optional)" rows="3"></textarea>
                 
-                <label for="task-status">Column</label>
-                <select id="task-status" name="status">
-                    <option value="todo">📋 To Do</option>
-                    <option value="in_progress">⚡ In Progress</option>
-                    <option value="done">✅ Done</option>
+                <label for="task-column">Column</label>
+                <select id="task-column" name="column_id">
+                    {% for column in columns %}
+                    <option value="{{ column.id }}">{{ column.name }}</option>
+                    {% endfor %}
                 </select>
                 
                 <div class="modal-buttons">
@@ -283,195 +457,78 @@
         </div>
     </div>
     
+    <!-- Modal for Adding Column -->
+    <div class="modal-overlay" id="column-modal">
+        <div class="modal">
+            <h2>Add New Column</h2>
+            <form method="post" action="{% url 'add_column' %}" id="add-column-form">
+                {% csrf_token %}
+                
+                <label for="column-name">Column Name *</label>
+                <input id="column-name" type="text" name="name" placeholder="e.g., Blocked, Review" required aria-required="true">
+                
+                <div class="modal-buttons">
+                    <button type="button" class="btn-secondary" id="cancel-column-btn">Cancel</button>
+                    <button type="submit" class="btn-primary">Add Column</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Modal for Editing Task -->
+    <div class="modal-overlay" id="edit-task-modal">
+        <div class="modal">
+            <h2>Edit Task</h2>
+            <form id="edit-task-form">
+                <input type="hidden" id="edit-task-id" value="">
+                
+                <label for="edit-task-title">Title *</label>
+                <input id="edit-task-title" type="text" name="title" placeholder="What needs to be done?" required aria-required="true">
+                
+                <label for="edit-task-description">Description</label>
+                <textarea id="edit-task-description" name="description" placeholder="Additional details (optional)" rows="3"></textarea>
+                
+                <div class="modal-buttons">
+                    <button type="button" class="btn-secondary" id="cancel-edit-btn">Cancel</button>
+                    <button type="submit" class="btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
     <!-- Kanban Board -->
     <div class="kanban-board">
-        <div class="column todo" data-status="todo" role="region" aria-labelledby="todo-header">
-            <div id="todo-header" class="column-header">📋 To Do ({{ todo_tasks|length }})</div>
+        {% for column in columns %}
+        <div class="column" data-column-id="{{ column.id }}" data-column-order="{{ column.order }}" role="region" aria-labelledby="column-header-{{ column.id }}">
+            <div id="column-header-{{ column.id }}" class="column-header">
+                <span class="drag-handle" title="Drag to reorder">⋮</span>
+                <div class="column-title" data-column-id="{{ column.id }}">
+                    {{ column.name }} ({{ column.tasks.count }})
+                </div>
+                <div class="column-controls">
+                    <button class="delete-column" data-column-id="{{ column.id }}" aria-label="Delete column" title="Delete column">×</button>
+                </div>
+            </div>
             <div class="tasks" role="list">
-                {% for task in todo_tasks %}
-                <div class="task" data-task-id="{{ task.id }}" draggable="true" role="listitem" aria-grabbed="false">
+                {% for task in column.tasks.all %}
+                <div class="task" data-task-id="{{ task.id }}" data-order="{{ task.order }}" draggable="true" role="listitem" aria-grabbed="false">
+                    <button class="task-edit" data-task-id="{{ task.id }}" aria-label="Edit task" title="Edit task">✎</button>
                     <div class="task-title">{{ task.title }}</div>
                     {% if task.description %}
                     <div class="task-description">{{ task.description }}</div>
                     {% endif %}
-                    <div class="task-meta">Created: {{ task.created_at|date:"M d" }}</div>
+                    <div class="task-meta">{{ task.created_at|date:"M d" }}</div>
                 </div>
                 {% empty %}
-                <div class="empty-column" role="note">No tasks yet. Add one! 👆</div>
+                <div class="empty-column" role="note">No tasks yet</div>
                 {% endfor %}
             </div>
         </div>
-        
-        <div class="column in-progress" data-status="in_progress" role="region" aria-labelledby="inprogress-header">
-            <div id="inprogress-header" class="column-header">⚡ In Progress ({{ in_progress_tasks|length }})</div>
-            <div class="tasks" role="list">
-                {% for task in in_progress_tasks %}
-                <div class="task" data-task-id="{{ task.id }}" draggable="true" role="listitem" aria-grabbed="false">
-                    <div class="task-title">{{ task.title }}</div>
-                    {% if task.description %}
-                    <div class="task-description">{{ task.description }}</div>
-                    {% endif %}
-                    <div class="task-meta">Started: {{ task.updated_at|date:"M d" }}</div>
-                </div>
-                {% empty %}
-                <div class="empty-column" role="note">Ready for your focus! 🎯</div>
-                {% endfor %}
-            </div>
-        </div>
-        
-        <div class="column done" data-status="done" role="region" aria-labelledby="done-header">
-            <div id="done-header" class="column-header">✅ Done ({{ done_tasks|length }})</div>
-            <div class="tasks" role="list">
-                {% for task in done_tasks %}
-                <div class="task" data-task-id="{{ task.id }}" draggable="true" role="listitem" aria-grabbed="false">
-                    <div class="task-title">{{ task.title }}</div>
-                    {% if task.description %}
-                    <div class="task-description">{{ task.description }}</div>
-                    {% endif %}
-                    <div class="task-meta">Completed: {{ task.updated_at|date:"M d" }}</div>
-                </div>
-                {% empty %}
-                <div class="empty-column" role="note">Completed tasks will appear here! 🎉</div>
-                {% endfor %}
-            </div>
-        </div>
+        {% endfor %}
     </div>
 
     <script>
-        // Modal Controls
-        const modal = document.getElementById('task-modal');
-        const addBtn = document.getElementById('add-task-btn');
-        const cancelBtn = document.getElementById('cancel-btn');
-        const form = document.getElementById('add-task-form');
-        
-        // Open modal
-        addBtn.addEventListener('click', () => {
-            modal.classList.add('active');
-            document.getElementById('task-title').focus();
-        });
-        
-        // Close modal
-        cancelBtn.addEventListener('click', () => {
-            modal.classList.remove('active');
-            form.reset();
-        });
-        
-        // Close modal when clicking overlay
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                modal.classList.remove('active');
-                form.reset();
-            }
-        });
-        
-        // Close modal with Escape key
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && modal.classList.contains('active')) {
-                modal.classList.remove('active');
-                form.reset();
-            }
-        });
-        
-        // Drag and Drop Functionality
-        let draggedTask = null;
-        
-        // Drag start
-        document.addEventListener('dragstart', function(e) {
-            if (e.target.classList.contains('task')) {
-                draggedTask = e.target;
-                e.target.classList.add('dragging');
-                e.target.setAttribute('aria-grabbed', 'true');
-                
-                e.dataTransfer.setData('text/plain', e.target.dataset.taskId);
-                e.dataTransfer.effectAllowed = 'move';
-            }
-        });
-        
-        // Drag end
-        document.addEventListener('dragend', function(e) {
-            if (e.target.classList.contains('task')) {
-                e.target.classList.remove('dragging');
-                e.target.setAttribute('aria-grabbed', 'false');
-                document.querySelectorAll('.column').forEach(col => {
-                    col.classList.remove('drag-over');
-                });
-            }
-        });
-        
-        // Drag over - allow drop
-        document.addEventListener('dragover', function(e) {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'move';
-        });
-        
-        // Drag enter - visual feedback
-        document.addEventListener('dragenter', function(e) {
-            const column = e.target.closest('.column');
-            if (column && draggedTask) {
-                document.querySelectorAll('.column').forEach(col => {
-                    col.classList.remove('drag-over');
-                });
-                column.classList.add('drag-over');
-            }
-        });
-        
-        // Drop
-        document.addEventListener('drop', function(e) {
-            e.preventDefault();
-            
-            const column = e.target.closest('.column');
-            const tasksContainer = column ? column.querySelector('.tasks') : null;
-            
-            if (tasksContainer && draggedTask) {
-                const newStatus = column.dataset.status;
-                const taskId = draggedTask.dataset.taskId;
-                
-                const currentColumn = draggedTask.closest('.column');
-                const currentStatus = currentColumn.dataset.status;
-                
-                if (newStatus !== currentStatus) {
-                    tasksContainer.appendChild(draggedTask);
-                    
-                    const emptyMsg = tasksContainer.querySelector('.empty-column');
-                    if (emptyMsg) {
-                        emptyMsg.remove();
-                    }
-                    
-                    // Update the server
-                    fetch('/move-task/', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': getCookie('csrftoken')
-                        },
-                        body: JSON.stringify({
-                            task_id: taskId,
-                            new_status: newStatus
-                        })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            setTimeout(() => window.location.reload(), 100);
-                        } else {
-                            alert('Failed to move task. Please try again.');
-                            location.reload();
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        alert('Network error. Please try again.');
-                        location.reload();
-                    });
-                }
-            }
-            
-            document.querySelectorAll('.column').forEach(col => {
-                col.classList.remove('drag-over');
-            });
-        });
-        
-        // CSRF helper from Django docs
+        // Get CSRF token
         function getCookie(name) {
             let cookieValue = null;
             if (document.cookie && document.cookie !== '') {
@@ -486,6 +543,564 @@
             }
             return cookieValue;
         }
+        
+        // Column count management
+        const totalColumns = {{ columns|length }};
+        const MAX_COLUMNS = 12;
+        
+        if (totalColumns >= MAX_COLUMNS) {
+            document.getElementById('add-column-btn').disabled = true;
+            document.getElementById('column-limit-msg').classList.add('show');
+        }
+        
+        // Task Modal Controls
+        const taskModal = document.getElementById('task-modal');
+        const addTaskBtn = document.getElementById('add-task-btn');
+        const cancelTaskBtn = document.getElementById('cancel-btn');
+        const taskForm = document.getElementById('add-task-form');
+        
+        addTaskBtn.addEventListener('click', () => {
+            taskModal.classList.add('active');
+            document.getElementById('task-title').focus();
+        });
+        
+        cancelTaskBtn.addEventListener('click', () => {
+            taskModal.classList.remove('active');
+            taskForm.reset();
+        });
+        
+        taskModal.addEventListener('click', (e) => {
+            if (e.target === taskModal) {
+                taskModal.classList.remove('active');
+                taskForm.reset();
+            }
+        });
+        
+        // Column Modal Controls
+        const columnModal = document.getElementById('column-modal');
+        const addColumnBtn = document.getElementById('add-column-btn');
+        const cancelColumnBtn = document.getElementById('cancel-column-btn');
+        const columnForm = document.getElementById('add-column-form');
+        
+        addColumnBtn.addEventListener('click', () => {
+            if (totalColumns < MAX_COLUMNS) {
+                columnModal.classList.add('active');
+                document.getElementById('column-name').focus();
+            }
+        });
+        
+        cancelColumnBtn.addEventListener('click', () => {
+            columnModal.classList.remove('active');
+            columnForm.reset();
+        });
+        
+        columnModal.addEventListener('click', (e) => {
+            if (e.target === columnModal) {
+                columnModal.classList.remove('active');
+                columnForm.reset();
+            }
+        });
+        
+        // Edit Task Modal Controls
+        const editTaskModal = document.getElementById('edit-task-modal');
+        const editTaskForm = document.getElementById('edit-task-form');
+        const cancelEditBtn = document.getElementById('cancel-edit-btn');
+        
+        cancelEditBtn.addEventListener('click', () => {
+            editTaskModal.classList.remove('active');
+            editTaskForm.reset();
+        });
+        
+        editTaskModal.addEventListener('click', (e) => {
+            if (e.target === editTaskModal) {
+                editTaskModal.classList.remove('active');
+                editTaskForm.reset();
+            }
+        });
+        
+        // Open edit modal when clicking edit button
+        document.querySelectorAll('.task-edit').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                e.preventDefault();
+                
+                const taskCard = this.closest('.task');
+                const taskId = this.dataset.taskId;
+                const titleEl = taskCard.querySelector('.task-title');
+                const descEl = taskCard.querySelector('.task-description');
+                
+                document.getElementById('edit-task-id').value = taskId;
+                document.getElementById('edit-task-title').value = titleEl.textContent;
+                document.getElementById('edit-task-description').value = descEl ? descEl.textContent : '';
+                
+                editTaskModal.classList.add('active');
+                document.getElementById('edit-task-title').focus();
+            });
+        });
+        
+        // Handle edit form submission
+        editTaskForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const taskId = document.getElementById('edit-task-id').value;
+            const title = document.getElementById('edit-task-title').value.trim();
+            const description = document.getElementById('edit-task-description').value.trim();
+            
+            if (!title) return;
+            
+            fetch(`/edit-task/${taskId}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    title: title,
+                    description: description
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update the task card without reloading
+                    const taskCard = document.querySelector(`.task[data-task-id="${taskId}"]`);
+                    const titleEl = taskCard.querySelector('.task-title');
+                    let descEl = taskCard.querySelector('.task-description');
+                    
+                    titleEl.textContent = data.task.title;
+                    
+                    if (data.task.description) {
+                        if (descEl) {
+                            descEl.textContent = data.task.description;
+                        } else {
+                            // Create description element if it doesn't exist
+                            descEl = document.createElement('div');
+                            descEl.className = 'task-description';
+                            descEl.textContent = data.task.description;
+                            titleEl.after(descEl);
+                        }
+                    } else if (descEl) {
+                        // Remove description element if description is empty
+                        descEl.remove();
+                    }
+                    
+                    editTaskModal.classList.remove('active');
+                    editTaskForm.reset();
+                } else {
+                    alert('Failed to save changes');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Network error');
+            });
+        });
+        
+        // Close modals with Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                if (taskModal.classList.contains('active')) {
+                    taskModal.classList.remove('active');
+                    taskForm.reset();
+                }
+                if (columnModal.classList.contains('active')) {
+                    columnModal.classList.remove('active');
+                    columnForm.reset();
+                }
+                if (editTaskModal.classList.contains('active')) {
+                    editTaskModal.classList.remove('active');
+                    editTaskForm.reset();
+                }
+            }
+        });
+        
+        // Rename Column - Double click to edit
+        document.querySelectorAll('.column-title').forEach(title => {
+            title.addEventListener('dblclick', function(e) {
+                e.stopPropagation();
+                const columnId = this.dataset.columnId;
+                const currentName = this.textContent.split('(')[0].trim();
+                
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.value = currentName;
+                input.className = 'column-title-input';
+                
+                this.replaceWith(input);
+                input.focus();
+                input.select();
+                
+                function saveRename() {
+                    const newName = input.value.trim();
+                    if (newName && newName !== currentName) {
+                        const formData = new FormData();
+                        formData.append('name', newName);
+                        formData.append('csrfmiddlewaretoken', getCookie('csrftoken'));
+                        
+                        fetch(`/rename-column/${columnId}/`, {
+                            method: 'POST',
+                            body: formData
+                        })
+                        .then(() => window.location.reload())
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert('Failed to rename column');
+                            window.location.reload();
+                        });
+                    } else {
+                        window.location.reload();
+                    }
+                }
+                
+                input.addEventListener('blur', saveRename);
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        saveRename();
+                    } else if (e.key === 'Escape') {
+                        window.location.reload();
+                    }
+                });
+            });
+        });
+        
+        // Delete Column
+        document.querySelectorAll('.delete-column').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const columnId = this.dataset.columnId;
+                const columnName = this.closest('.column-header').querySelector('.column-title').textContent.split('(')[0].trim();
+                
+                if (confirm(`Delete "${columnName}"? Tasks will move to the first column.`)) {
+                    const formData = new FormData();
+                    formData.append('csrfmiddlewaretoken', getCookie('csrftoken'));
+                    
+                    fetch(`/delete-column/${columnId}/`, {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(() => window.location.reload())
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Failed to delete column');
+                    });
+                }
+            });
+        });
+        
+        // Column Drag and Drop - Reorder columns
+        let draggedColumn = null;
+        let draggedTask = null;
+        
+        document.querySelectorAll('.drag-handle').forEach(handle => {
+            handle.addEventListener('mousedown', function(e) {
+                const header = this.closest('.column-header');
+                const column = this.closest('.column');
+                
+                // Make the header draggable when mousedown on handle
+                header.setAttribute('draggable', 'true');
+                
+                // Set up drag start
+                const dragStartHandler = function(e) {
+                    draggedColumn = column;
+                    column.classList.add('column-dragging');
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/html', column.innerHTML);
+                };
+                
+                header.addEventListener('dragstart', dragStartHandler, { once: true });
+                
+                // Clean up on mouseup
+                document.addEventListener('mouseup', function() {
+                    header.removeAttribute('draggable');
+                }, { once: true });
+            });
+        });
+        
+        // Column drag end
+        document.addEventListener('dragend', function(e) {
+            if (e.target.classList.contains('column-header')) {
+                const column = e.target.closest('.column');
+                if (column) {
+                    column.classList.remove('column-dragging');
+                }
+                document.querySelectorAll('.column').forEach(col => {
+                    col.classList.remove('column-drag-over');
+                });
+                draggedColumn = null;
+            }
+        });
+        
+        // Allow dropping on columns
+        document.querySelectorAll('.column').forEach(column => {
+            column.addEventListener('dragover', function(e) {
+                if (draggedColumn && draggedColumn !== this && !draggedTask) {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                }
+            });
+            
+            column.addEventListener('dragenter', function(e) {
+                if (draggedColumn && draggedColumn !== this && !draggedTask) {
+                    this.classList.add('column-drag-over');
+                }
+            });
+            
+            column.addEventListener('dragleave', function(e) {
+                if (e.target === this) {
+                    this.classList.remove('column-drag-over');
+                }
+            });
+            
+            column.addEventListener('drop', function(e) {
+                if (draggedColumn && draggedColumn !== this && !draggedTask) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    const board = document.querySelector('.kanban-board');
+                    const allColumns = Array.from(board.querySelectorAll('.column'));
+                    const draggedIndex = allColumns.indexOf(draggedColumn);
+                    const targetIndex = allColumns.indexOf(this);
+                    
+                    if (draggedIndex < targetIndex) {
+                        this.parentNode.insertBefore(draggedColumn, this.nextSibling);
+                    } else {
+                        this.parentNode.insertBefore(draggedColumn, this);
+                    }
+                    
+                    // Update order on server
+                    const newOrder = Array.from(board.querySelectorAll('.column')).map((col, index) => ({
+                        id: col.dataset.columnId,
+                        order: index + 1
+                    }));
+                    
+                    fetch('/reorder-columns/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCookie('csrftoken')
+                        },
+                        body: JSON.stringify({
+                            column_orders: newOrder
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (!data.success) {
+                            console.error('Failed to save column order');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    });
+                    
+                    this.classList.remove('column-drag-over');
+                }
+            });
+        });
+        
+        // Task Drag and Drop
+        document.addEventListener('dragstart', function(e) {
+            if (e.target.classList.contains('task')) {
+                draggedTask = e.target;
+                e.target.classList.add('dragging');
+                e.target.setAttribute('aria-grabbed', 'true');
+                e.dataTransfer.setData('text/plain', e.target.dataset.taskId);
+                e.dataTransfer.effectAllowed = 'move';
+            }
+        });
+        
+        document.addEventListener('dragend', function(e) {
+            if (e.target.classList.contains('task')) {
+                e.target.classList.remove('dragging');
+                e.target.setAttribute('aria-grabbed', 'false');
+                document.querySelectorAll('.column').forEach(col => {
+                    col.classList.remove('drag-over');
+                });
+                document.querySelectorAll('.task').forEach(task => {
+                    task.classList.remove('drag-over-task');
+                });
+                draggedTask = null;
+            }
+        });
+        
+        document.addEventListener('dragover', function(e) {
+            if (draggedTask && !draggedColumn) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+            }
+        });
+        
+        document.addEventListener('dragenter', function(e) {
+            // Highlight task drop zones
+            if (draggedTask && !draggedColumn) {
+                const targetTask = e.target.closest('.task');
+                if (targetTask && targetTask !== draggedTask) {
+                    document.querySelectorAll('.task').forEach(t => {
+                        t.classList.remove('drag-over-task');
+                    });
+                    targetTask.classList.add('drag-over-task');
+                }
+            }
+            
+            // Highlight column drop zones
+            const column = e.target.closest('.column');
+            if (column && draggedTask && !draggedColumn) {
+                document.querySelectorAll('.column').forEach(col => {
+                    col.classList.remove('drag-over');
+                });
+                column.classList.add('drag-over');
+            }
+        });
+        
+        document.addEventListener('drop', function(e) {
+            if (!draggedTask || draggedColumn) {
+                return;
+            }
+            
+            e.preventDefault();
+            
+            const column = e.target.closest('.column');
+            const tasksContainer = column ? column.querySelector('.tasks') : null;
+            
+            if (tasksContainer && draggedTask) {
+                const newColumnId = column.dataset.columnId;
+                const taskId = draggedTask.dataset.taskId;
+                
+                const currentColumn = draggedTask.closest('.column');
+                const currentColumnId = currentColumn.dataset.columnId;
+                
+                // Check if dropping within same column (reordering) or different column (moving)
+                if (newColumnId === currentColumnId) {
+                    // Reordering within same column
+                    const dropTarget = e.target.closest('.task');
+                    
+                    if (dropTarget && dropTarget !== draggedTask) {
+                        // Insert before or after the target task
+                        const tasksInColumn = Array.from(tasksContainer.querySelectorAll('.task'));
+                        const draggedIndex = tasksInColumn.indexOf(draggedTask);
+                        const targetIndex = tasksInColumn.indexOf(dropTarget);
+                        
+                        if (draggedIndex < targetIndex) {
+                            // Moving down - insert after target
+                            dropTarget.parentNode.insertBefore(draggedTask, dropTarget.nextSibling);
+                        } else {
+                            // Moving up - insert before target
+                            dropTarget.parentNode.insertBefore(draggedTask, dropTarget);
+                        }
+                        
+                        // Update task order on server
+                        const newOrder = Array.from(tasksContainer.querySelectorAll('.task')).map((task, index) => ({
+                            id: task.dataset.taskId,
+                            order: index + 1
+                        }));
+                        
+                        fetch('/reorder-tasks/', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': getCookie('csrftoken')
+                            },
+                            body: JSON.stringify({
+                                task_orders: newOrder,
+                                column_id: newColumnId
+                            })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (!data.success) {
+                                console.error('Failed to save task order');
+                                location.reload();
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            location.reload();
+                        });
+                    }
+                } else {
+                    // Moving to different column
+                    const oldColumn = draggedTask.closest('.column');
+                    const oldTasksContainer = oldColumn.querySelector('.tasks');
+                    
+                    // Get the order of the dragged task
+                    const draggedTaskOrder = parseInt(draggedTask.dataset.order);
+                    
+                    // Find the correct position to insert based on order
+                    const tasksInNewColumn = Array.from(tasksContainer.querySelectorAll('.task'));
+                    let insertBeforeTask = null;
+                    
+                    for (let task of tasksInNewColumn) {
+                        const taskOrder = parseInt(task.dataset.order);
+                        if (taskOrder > draggedTaskOrder) {
+                            insertBeforeTask = task;
+                            break;
+                        }
+                    }
+                    
+                    // Insert at correct position or append if it should be last
+                    if (insertBeforeTask) {
+                        tasksContainer.insertBefore(draggedTask, insertBeforeTask);
+                    } else {
+                        tasksContainer.appendChild(draggedTask);
+                    }
+                    
+                    const emptyMsg = tasksContainer.querySelector('.empty-column');
+                    if (emptyMsg) {
+                        emptyMsg.remove();
+                    }
+                    
+                    // Update counts immediately
+                    function updateColumnCount(columnElement) {
+                        const taskCount = columnElement.querySelectorAll('.task').length;
+                        const columnTitle = columnElement.querySelector('.column-title');
+                        const titleText = columnTitle.textContent.split('(')[0].trim();
+                        columnTitle.textContent = `${titleText} (${taskCount})`;
+                        
+                        // Add empty message if no tasks
+                        const container = columnElement.querySelector('.tasks');
+                        if (taskCount === 0 && !container.querySelector('.empty-column')) {
+                            const emptyDiv = document.createElement('div');
+                            emptyDiv.className = 'empty-column';
+                            emptyDiv.setAttribute('role', 'note');
+                            emptyDiv.textContent = 'No tasks yet';
+                            container.appendChild(emptyDiv);
+                        }
+                    }
+                    
+                    updateColumnCount(oldColumn);
+                    updateColumnCount(column);
+                    
+                    fetch('/move-task/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCookie('csrftoken')
+                        },
+                        body: JSON.stringify({
+                            task_id: taskId,
+                            column_id: newColumnId
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (!data.success) {
+                            alert('Failed to move task');
+                            location.reload();
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Network error');
+                        location.reload();
+                    });
+                }
+            }
+            
+            document.querySelectorAll('.column').forEach(col => {
+                col.classList.remove('drag-over');
+            });
+        });
     </script>
 </body>
 </html>
