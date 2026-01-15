@@ -5,6 +5,12 @@
 
 import { api, isAuthenticated } from './api.js';
 import { showError as showToastError } from './toast.js';
+import {
+    initOfflineDetection,
+    getIsOffline,
+    getCachedBoard,
+    onOfflineChange
+} from './offline.js';
 
 // Check authentication
 if (!isAuthenticated()) {
@@ -16,6 +22,7 @@ let currentUser = null;
 let columns = [];
 let draggedColumn = null;
 let draggedTask = null;
+let isOffline = false;
 
 const MAX_COLUMNS = 12;
 
@@ -66,6 +73,64 @@ function showBoard() {
     loadingState.style.display = 'none';
     errorState.style.display = 'none';
     kanbanBoard.style.display = 'flex';
+}
+
+// Offline mode UI
+function updateOfflineUI() {
+    const indicator = document.getElementById('offline-indicator');
+    if (indicator) {
+        indicator.style.display = isOffline ? 'flex' : 'none';
+    }
+
+    // Add/remove offline class on board
+    if (isOffline) {
+        kanbanBoard.classList.add('offline-mode');
+    } else {
+        kanbanBoard.classList.remove('offline-mode');
+    }
+
+    setEditingEnabled(!isOffline);
+}
+
+function setEditingEnabled(enabled) {
+    // Disable/enable add buttons
+    const addTaskBtn = document.getElementById('add-task-btn');
+
+    if (addTaskBtn) {
+        addTaskBtn.disabled = !enabled;
+        addTaskBtn.title = enabled ? 'Add new task' : 'Editing disabled while offline';
+    }
+    if (addColumnBtn) {
+        // Only disable if offline; column limit takes precedence when online
+        if (!enabled) {
+            addColumnBtn.disabled = true;
+            addColumnBtn.title = 'Editing disabled while offline';
+        } else {
+            updateColumnLimitUI(); // Restore normal state based on column count
+        }
+    }
+
+    // Update all task cards to disable drag and controls
+    document.querySelectorAll('.task').forEach(task => {
+        task.draggable = enabled;
+        task.style.cursor = enabled ? 'grab' : 'default';
+    });
+
+    // Disable column drag handles
+    document.querySelectorAll('.drag-handle').forEach(handle => {
+        handle.style.cursor = enabled ? 'grab' : 'default';
+        handle.style.pointerEvents = enabled ? 'auto' : 'none';
+    });
+
+    // Hide edit/delete buttons on tasks
+    document.querySelectorAll('.task-controls').forEach(ctrl => {
+        ctrl.style.visibility = enabled ? '' : 'hidden';
+    });
+
+    // Hide delete buttons on columns
+    document.querySelectorAll('.column-controls').forEach(ctrl => {
+        ctrl.style.visibility = enabled ? '' : 'hidden';
+    });
 }
 
 // Update column limit UI
@@ -208,21 +273,36 @@ function renderBoard() {
 // Load board data
 async function loadBoard() {
     showLoading();
-    
+
     try {
         // Get user info
         currentUser = await api.getCurrentUser();
         usernameDisplay.textContent = currentUser.username;
-        
+
         // Get board data
         const data = await api.getBoard();
         columns = data.columns;
-        
+
         renderBoard();
         showBoard();
+        updateOfflineUI();
     } catch (error) {
         console.error('Failed to load board:', error);
-        showError(error.message || 'Failed to load board');
+
+        // Check if we have cached data to fall back to
+        const isNetworkError = error.message && error.message.includes('Network error');
+        const cachedData = getCachedBoard();
+
+        if (cachedData && isNetworkError) {
+            // Use cached data in offline mode
+            columns = cachedData.columns;
+            isOffline = true;
+            renderBoard();
+            showBoard();
+            updateOfflineUI();
+        } else {
+            showError(error.message || 'Failed to load board');
+        }
     }
 }
 
@@ -394,9 +474,14 @@ function handleTaskDragEnd(e) {
 
 // Column rename
 function startColumnRename(column, titleEl) {
+    if (isOffline) {
+        showToastError('Cannot rename columns while offline. Please reconnect to make changes.');
+        return;
+    }
+
     const currentName = column.name;
     const taskCount = column.tasks ? column.tasks.length : 0;
-    
+
     const input = document.createElement('input');
     input.type = 'text';
     input.className = 'column-rename-input';
@@ -433,6 +518,11 @@ function startColumnRename(column, titleEl) {
 
 // Delete column
 async function handleDeleteColumn(column) {
+    if (isOffline) {
+        showToastError('Cannot delete columns while offline. Please reconnect to make changes.');
+        return;
+    }
+
     const taskCount = column.tasks ? column.tasks.length : 0;
     let confirmMsg = `Delete column "${column.name}"?`;
     if (taskCount > 0) {
@@ -453,8 +543,13 @@ async function handleDeleteColumn(column) {
 
 // Delete task
 async function handleDeleteTask(task) {
+    if (isOffline) {
+        showToastError('Cannot delete tasks while offline. Please reconnect to make changes.');
+        return;
+    }
+
     const taskTitle = task.title.length > 30 ? task.title.substring(0, 30) + '...' : task.title;
-    
+
     if (!confirm(`Delete "${taskTitle}"?`)) return;
     
     try {
@@ -585,7 +680,12 @@ document.addEventListener('keydown', (e) => {
 // Add task form
 document.getElementById('add-task-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    
+
+    if (isOffline) {
+        showToastError('Cannot add tasks while offline. Please reconnect to make changes.');
+        return;
+    }
+
     const title = document.getElementById('task-title').value.trim();
     const description = document.getElementById('task-description').value.trim();
     const columnId = parseInt(document.getElementById('task-column').value);
@@ -613,7 +713,12 @@ document.getElementById('add-task-form').addEventListener('submit', async (e) =>
 // Add column form
 document.getElementById('add-column-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    
+
+    if (isOffline) {
+        showToastError('Cannot add columns while offline. Please reconnect to make changes.');
+        return;
+    }
+
     const name = document.getElementById('column-name').value.trim();
     
     if (!name) return;
@@ -635,7 +740,12 @@ document.getElementById('add-column-form').addEventListener('submit', async (e) 
 // Edit task form
 document.getElementById('edit-task-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    
+
+    if (isOffline) {
+        showToastError('Cannot edit tasks while offline. Please reconnect to make changes.');
+        return;
+    }
+
     const taskId = parseInt(document.getElementById('edit-task-id').value);
     const title = document.getElementById('edit-task-title').value.trim();
     const description = document.getElementById('edit-task-description').value.trim();
@@ -666,6 +776,18 @@ document.getElementById('edit-task-form').addEventListener('submit', async (e) =
 
 // Retry button
 document.getElementById('retry-btn').addEventListener('click', loadBoard);
+
+// Initialize offline detection
+initOfflineDetection();
+onOfflineChange((offline) => {
+    console.log('[Offline] State changed to:', offline);
+    isOffline = offline;
+    updateOfflineUI();
+    if (!offline) {
+        // Refresh data when coming back online (server wins)
+        loadBoard();
+    }
+});
 
 // Initialize
 loadBoard();

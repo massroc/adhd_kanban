@@ -6,6 +6,7 @@
  */
 
 import { CONFIG } from './config.js';
+import { setOfflineMode, cacheBoard, clearBoardCache } from './offline.js';
 
 // Token management
 function getToken() {
@@ -45,7 +46,9 @@ async function apiRequest(endpoint, options = {}) {
             headers,
         });
     } catch (error) {
-        // Handle network errors
+        // Handle network errors - trigger offline mode
+        console.log('[API] Network error detected, triggering offline mode');
+        setOfflineMode(true);
         throw new Error('Network error: Unable to connect to server');
     }
     
@@ -145,6 +148,7 @@ const api = {
             // Ignore errors - we're logging out anyway
         } finally {
             clearToken();
+            clearBoardCache();
         }
     },
     
@@ -154,7 +158,12 @@ const api = {
     
     // Board
     async getBoard() {
-        return await apiRequest('/board/');
+        const data = await apiRequest('/board/');
+        // Cache board data on successful fetch
+        cacheBoard(data);
+        // Clear offline mode on successful request
+        setOfflineMode(false);
+        return data;
     },
     
     // Columns

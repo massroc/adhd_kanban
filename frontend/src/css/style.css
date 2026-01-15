@@ -796,3 +796,61 @@ body {
 .toast-info .toast-icon {
     color: #3498db;
 }
+
+/* ===========================================
+   Offline Indicator
+   =========================================== */
+
+.offline-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: #fef3cd;
+    border-bottom: 1px solid #ffc107;
+    padding: 8px 16px;
+    color: #856404;
+    font-size: 14px;
+}
+
+.offline-icon {
+    font-size: 16px;
+}
+
+.offline-text {
+    font-weight: 500;
+}
+
+/* Disabled state for add task button when offline */
+#add-task-btn:disabled {
+    background: #bdc3c7;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+#add-task-btn:disabled:hover {
+    transform: none;
+    background: #bdc3c7;
+}
+
+/* Visual indication that board is read-only when offline */
+.kanban-board.offline-mode .task {
+    cursor: default;
+}
+
+.kanban-board.offline-mode .task:hover {
+    transform: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.kanban-board.offline-mode .drag-handle {
+    display: none;
+}
+
+.kanban-board.offline-mode .column-title {
+    cursor: default;
+}
+
+.kanban-board.offline-mode .column-title:hover {
+    background: transparent;
+}

@@ -434,9 +434,82 @@
             margin-top: 50px;
             padding: 0 5px;
         }
+
+        /* Offline Indicator */
+        .offline-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: #fef3cd;
+            border-bottom: 1px solid #ffc107;
+            padding: 8px 16px;
+            color: #856404;
+            font-size: 14px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+        }
+
+        .offline-indicator .offline-icon {
+            font-size: 16px;
+        }
+
+        .offline-indicator .offline-text {
+            font-weight: 500;
+        }
+
+        body.offline-mode {
+            padding-top: 50px;
+        }
+
+        body.offline-mode #add-task-btn {
+            background: #bdc3c7;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        body.offline-mode #add-task-btn:hover {
+            transform: none;
+            background: #bdc3c7;
+        }
+
+        body.offline-mode .task {
+            cursor: default;
+        }
+
+        body.offline-mode .task:hover {
+            transform: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        body.offline-mode .drag-handle {
+            display: none;
+        }
+
+        body.offline-mode .column-title {
+            cursor: default;
+        }
+
+        body.offline-mode .column-title:hover {
+            background: transparent;
+        }
+
+        body.offline-mode .task-controls,
+        body.offline-mode .column-controls {
+            display: none;
+        }
     </style>
 </head>
 <body>
+    <!-- Offline Indicator - hidden by default -->
+    <div id="offline-indicator" class="offline-indicator" style="display: none;">
+        <span class="offline-icon">&#x26A0;</span>
+        <span class="offline-text">You're offline - viewing cached data (read-only)</span>
+    </div>
+
     <div class="header">
         <h1 id="page-title">🧠 ADHD Kanban Organizer</h1>
         <div class="column-settings">
@@ -552,7 +625,54 @@
     <script>
         // API base URL
         const API_BASE = '/api/v1';
-        
+
+        // Offline mode management
+        let isOffline = !navigator.onLine;
+
+        function updateOfflineUI() {
+            const indicator = document.getElementById('offline-indicator');
+            if (isOffline) {
+                indicator.style.display = 'flex';
+                document.body.classList.add('offline-mode');
+                // Disable draggable on all tasks
+                document.querySelectorAll('.task').forEach(task => {
+                    task.draggable = false;
+                });
+            } else {
+                indicator.style.display = 'none';
+                document.body.classList.remove('offline-mode');
+                // Re-enable draggable on all tasks
+                document.querySelectorAll('.task').forEach(task => {
+                    task.draggable = true;
+                });
+            }
+        }
+
+        // Listen for online/offline events
+        window.addEventListener('online', () => {
+            console.log('[Offline] Back online');
+            isOffline = false;
+            updateOfflineUI();
+        });
+
+        window.addEventListener('offline', () => {
+            console.log('[Offline] Gone offline');
+            isOffline = true;
+            updateOfflineUI();
+        });
+
+        // Initialize offline UI on page load
+        updateOfflineUI();
+
+        // Helper to check offline before actions
+        function checkOffline(actionName) {
+            if (isOffline) {
+                alert(`Cannot ${actionName} while offline. Please reconnect to make changes.`);
+                return true;
+            }
+            return false;
+        }
+
         // Get CSRF token
         function getCookie(name) {
             let cookieValue = null;
@@ -620,6 +740,7 @@
         const taskForm = document.getElementById('add-task-form');
         
         addTaskBtn.addEventListener('click', () => {
+            if (checkOffline('add tasks')) return;
             taskModal.classList.add('active');
             document.getElementById('task-title').focus();
         });
@@ -643,6 +764,7 @@
         const columnForm = document.getElementById('add-column-form');
         
         addColumnBtn.addEventListener('click', () => {
+            if (checkOffline('add columns')) return;
             if (currentColumnCount < MAX_COLUMNS) {
                 columnModal.classList.add('active');
                 document.getElementById('column-name').focus();
@@ -683,7 +805,8 @@
             btn.addEventListener('click', function(e) {
                 e.stopPropagation();
                 e.preventDefault();
-                
+                if (checkOffline('edit tasks')) return;
+
                 const taskCard = this.closest('.task');
                 const taskId = this.dataset.taskId;
                 const titleEl = taskCard.querySelector('.task-title');
@@ -755,7 +878,8 @@
             btn.addEventListener('click', function(e) {
                 e.stopPropagation();
                 e.preventDefault();
-                
+                if (checkOffline('delete tasks')) return;
+
                 const taskCard = this.closest('.task');
                 const taskId = this.dataset.taskId;
                 const taskTitle = taskCard.querySelector('.task-title').textContent.trim();
@@ -804,6 +928,7 @@
         function attachColumnTitleHandler(titleElement) {
             titleElement.addEventListener('dblclick', function(e) {
                 e.stopPropagation();
+                if (checkOffline('rename columns')) return;
                 const columnId = this.dataset.columnId;
                 const currentName = this.textContent.split('(')[0].trim();
                 
@@ -873,6 +998,7 @@
         document.querySelectorAll('.delete-column').forEach(btn => {
             btn.addEventListener('click', function(e) {
                 e.stopPropagation();
+                if (checkOffline('delete columns')) return;
                 const columnId = this.dataset.columnId;
                 const columnElement = this.closest('.column');
                 const columnName = columnElement.querySelector('.column-title').textContent.split('(')[0].trim();
@@ -971,6 +1097,10 @@
             
             column.addEventListener('drop', function(e) {
                 if (draggedColumn && draggedColumn !== this && !draggedTask) {
+                    if (isOffline) {
+                        alert('Cannot reorder columns while offline. Please reconnect to make changes.');
+                        return;
+                    }
                     e.preventDefault();
                     e.stopPropagation();
                     
@@ -1065,7 +1195,11 @@
             if (!draggedTask || draggedColumn) {
                 return;
             }
-            
+            if (isOffline) {
+                alert('Cannot move tasks while offline. Please reconnect to make changes.');
+                return;
+            }
+
             e.preventDefault();
             
             const column = e.target.closest('.column');
