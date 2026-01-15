@@ -46,18 +46,13 @@ test.describe('Authentication', () => {
   });
 
   test('shows error on invalid login', async ({ page }) => {
-    // Known issue: api.js redirects on 401 before error can be displayed.
-    // The 401 handler in apiRequest() is meant for session expiry but also
-    // triggers on failed login attempts. See api.js lines 55-62.
-    // TODO: Fix api.js to not redirect on 401 for /auth/login endpoint
-    test.skip(true, 'Blocked by api.js bug: 401 redirects before error displays');
-
     await page.goto('/');
 
     await page.fill('#login-username', 'nonexistent_user');
     await page.fill('#login-password', 'wrong_password');
     await page.click('#login-submit');
 
+    // Wait for error element to have the 'show' class
     await expect(page.locator('#login-error')).toHaveClass(/show/, { timeout: 5000 });
   });
 

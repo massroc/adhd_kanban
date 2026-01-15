@@ -52,13 +52,14 @@ async function apiRequest(endpoint, options = {}) {
         throw new Error('Network error: Unable to connect to server');
     }
     
-    // Handle 401 - redirect to login
+    // Handle 401 - redirect to login (but not for auth endpoints)
     if (response.status === 401) {
         clearToken();
-        if (typeof window !== 'undefined' && window.location) {
+        const isAuthEndpoint = endpoint.startsWith('/auth/');
+        if (!isAuthEndpoint && typeof window !== 'undefined' && window.location) {
             window.location.href = 'index.html';
         }
-        throw new Error('Session expired');
+        throw new Error(isAuthEndpoint ? 'Invalid credentials' : 'Session expired');
     }
     
     // Handle 204 No Content
