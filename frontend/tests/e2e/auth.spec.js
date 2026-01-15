@@ -64,7 +64,7 @@ test.describe('Authentication', () => {
     await page.click('#login-submit');
     
     // Should redirect to board
-    await expect(page).toHaveURL(/board\.html/, { timeout: 10000 });
+    await expect(page).toHaveURL(/board(\.html)?$/, { timeout: 10000 });
   });
 
   test('authenticated user is redirected from login to board', async ({ page }) => {
@@ -73,11 +73,11 @@ test.describe('Authentication', () => {
     await page.fill('#login-username', TEST_USER.username);
     await page.fill('#login-password', TEST_USER.password);
     await page.click('#login-submit');
-    await expect(page).toHaveURL(/board\.html/, { timeout: 10000 });
+    await expect(page).toHaveURL(/board(\.html)?$/, { timeout: 10000 });
     
     // Now go back to login page - should redirect to board
     await page.goto('/');
-    await expect(page).toHaveURL(/board\.html/, { timeout: 5000 });
+    await expect(page).toHaveURL(/board(\.html)?$/, { timeout: 5000 });
   });
 });
 

@@ -25,7 +25,7 @@ test.describe('Board', () => {
     await page.click('#login-submit');
     
     // Wait for board to load
-    await expect(page).toHaveURL(/board\.html/, { timeout: 15000 });
+    await expect(page).toHaveURL(/board(\.html)?$/, { timeout: 15000 });
     await expect(page.locator('#kanban-board')).toBeVisible({ timeout: 10000 });
   });
 

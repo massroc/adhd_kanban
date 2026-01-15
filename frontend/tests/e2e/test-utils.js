@@ -76,6 +76,6 @@ export async function loginUser(page, username = TEST_USER.username, password = 
     await page.fill('#login-username', username);
     await page.fill('#login-password', password);
     await page.click('#login-submit');
-    // Wait for redirect to board
-    await page.waitForURL(/board\.html/, { timeout: 15000 });
+    // Wait for redirect to board (supports both /board.html and /board clean URL)
+    await page.waitForURL(/board(\.html)?$/, { timeout: 15000 });
 }
