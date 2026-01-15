@@ -79,3 +79,54 @@ export async function loginUser(page, username = TEST_USER.username, password = 
     // Wait for redirect to board (supports both /board.html and /board clean URL)
     await page.waitForURL(/board(\.html)?$/, { timeout: 15000 });
 }
+
+/** Default columns created on registration */
+const DEFAULT_COLUMNS = ['Backlog', 'Next', 'Today', 'In Progress', 'Done'];
+
+/**
+ * Clean up test data - delete all tasks and non-default columns
+ * @param {string} token - Auth token
+ */
+export async function cleanupTestData(token) {
+    const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Token ${token}`
+    };
+
+    // Fetch current board state
+    const boardResponse = await fetch(`${API_BASE}/board/`, { headers });
+    if (!boardResponse.ok) {
+        console.warn('[Cleanup] Failed to fetch board');
+        return;
+    }
+
+    const board = await boardResponse.json();
+    let tasksDeleted = 0;
+    let columnsDeleted = 0;
+
+    // Delete all tasks
+    for (const column of board.columns) {
+        for (const task of column.tasks) {
+            const response = await fetch(`${API_BASE}/tasks/${task.id}/`, {
+                method: 'DELETE',
+                headers
+            });
+            if (response.ok) tasksDeleted++;
+        }
+    }
+
+    // Delete non-default columns
+    for (const column of board.columns) {
+        if (!DEFAULT_COLUMNS.includes(column.name)) {
+            const response = await fetch(`${API_BASE}/columns/${column.id}/`, {
+                method: 'DELETE',
+                headers
+            });
+            if (response.ok) columnsDeleted++;
+        }
+    }
+
+    if (tasksDeleted > 0 || columnsDeleted > 0) {
+        console.log(`[Cleanup] Deleted ${tasksDeleted} tasks, ${columnsDeleted} columns`);
+    }
+}
