@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "tauri-app",
+  "productName": "ADHD Kanban",
   "version": "0.1.0",
-  "identifier": "com.rossm.tauri-app",
+  "identifier": "com.adhd-kanban.app",
   "build": {
     "frontendDist": "../src"
   },
@@ -17,7 +17,7 @@
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' http://localhost:8000 https://adhdkanban-production.up.railway.app; img-src 'self' data:; font-src 'self'"
     }
   },
   "bundle": {

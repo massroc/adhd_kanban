@@ -4,6 +4,7 @@
  */
 
 import { api, isAuthenticated } from './api.js';
+import { showError as showToastError } from './toast.js';
 
 // Check authentication
 if (!isAuthenticated()) {
@@ -446,7 +447,7 @@ async function handleDeleteColumn(column) {
         renderBoard();
     } catch (error) {
         console.error('Failed to delete column:', error);
-        alert('Failed to delete column');
+        showToastError('Failed to delete column. Please try again.');
     }
 }
 
@@ -471,7 +472,7 @@ async function handleDeleteTask(task) {
         renderBoard();
     } catch (error) {
         console.error('Failed to delete task:', error);
-        alert('Failed to delete task');
+        showToastError('Failed to delete task. Please try again.');
     }
 }
 
@@ -605,7 +606,7 @@ document.getElementById('add-task-form').addEventListener('submit', async (e) =>
         renderBoard();
     } catch (error) {
         console.error('Failed to create task:', error);
-        alert('Failed to create task: ' + error.message);
+        showToastError('Failed to create task: ' + error.message);
     }
 });
 
@@ -627,7 +628,7 @@ document.getElementById('add-column-form').addEventListener('submit', async (e) 
         renderBoard();
     } catch (error) {
         console.error('Failed to create column:', error);
-        alert('Failed to create column: ' + error.message);
+        showToastError('Failed to create column: ' + error.message);
     }
 });
 
@@ -659,7 +660,7 @@ document.getElementById('edit-task-form').addEventListener('submit', async (e) =
         renderBoard();
     } catch (error) {
         console.error('Failed to update task:', error);
-        alert('Failed to update task: ' + error.message);
+        showToastError('Failed to update task: ' + error.message);
     }
 });
 

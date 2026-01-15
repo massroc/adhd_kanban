@@ -1,15 +1,11 @@
 /**
  * API Client for ADHD Kanban
  * Handles all communication with the Django REST API
- * 
+ *
  * Works as both ES module (for tests) and browser global
  */
 
-const CONFIG = {
-    // Switch to localhost for local development
-    // API_BASE: 'http://localhost:8000/api/v1',
-    API_BASE: 'https://adhdkanban-production.up.railway.app/api/v1',
-};
+import { CONFIG } from './config.js';
 
 // Token management
 function getToken() {

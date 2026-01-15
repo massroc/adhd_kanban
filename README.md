@@ -1,6 +1,6 @@
 # ADHD Kanban Organizer
 
-A task management application designed for ADHD-friendly workflows, built with Django REST Framework backend and (soon) Flutter frontend.
+A task management application designed for ADHD-friendly workflows, built with Django REST Framework backend and Tauri desktop frontend.
 
 ## Prerequisites
 

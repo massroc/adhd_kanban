@@ -675,3 +675,124 @@ body {
     margin-top: 50px;
     padding: 0 5px;
 }
+
+/* ===========================================
+   Toast Notifications
+   =========================================== */
+
+#toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 400px;
+    pointer-events: none;
+}
+
+.toast {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border-left: 4px solid #3498db;
+    opacity: 0;
+    transform: translateX(100%);
+    transition: none;
+    pointer-events: auto;
+}
+
+.toast-show {
+    animation: toastSlideIn 0.3s ease forwards;
+}
+
+.toast-hide {
+    animation: toastSlideOut 0.3s ease forwards;
+}
+
+@keyframes toastSlideIn {
+    from {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes toastSlideOut {
+    from {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+}
+
+.toast-icon {
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+.toast-message {
+    flex: 1;
+    font-size: 14px;
+    color: #2c3e50;
+    line-height: 1.4;
+}
+
+.toast-close {
+    background: none;
+    border: none;
+    font-size: 18px;
+    color: #95a5a6;
+    cursor: pointer;
+    padding: 0;
+    margin-left: 8px;
+    flex-shrink: 0;
+}
+
+.toast-close:hover {
+    color: #2c3e50;
+}
+
+/* Toast Types */
+.toast-success {
+    border-left-color: #27ae60;
+}
+
+.toast-success .toast-icon {
+    color: #27ae60;
+}
+
+.toast-error {
+    border-left-color: #e74c3c;
+}
+
+.toast-error .toast-icon {
+    color: #e74c3c;
+}
+
+.toast-warning {
+    border-left-color: #f39c12;
+}
+
+.toast-warning .toast-icon {
+    color: #f39c12;
+}
+
+.toast-info {
+    border-left-color: #3498db;
+}
+
+.toast-info .toast-icon {
+    color: #3498db;
+}
