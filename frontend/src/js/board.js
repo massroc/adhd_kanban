@@ -55,6 +55,19 @@ function formatDate(dateString) {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
+// Insert task into array maintaining order by the 'order' field
+function insertTaskInOrder(tasks, task) {
+    // Find the index where this task should be inserted based on its order value
+    const insertIndex = tasks.findIndex(t => t.order > task.order);
+    if (insertIndex === -1) {
+        // Task has highest order, append to end
+        tasks.push(task);
+    } else {
+        // Insert at the correct position
+        tasks.splice(insertIndex, 0, task);
+    }
+}
+
 // Show/hide states
 function showLoading() {
     loadingState.style.display = 'flex';
@@ -428,15 +441,15 @@ async function handleColumnDrop(e, targetColumn) {
             // Move to different column
             try {
                 await api.moveTask(taskId, toColumnId);
-                
+
                 // Update local state
                 const fromCol = columns.find(c => c.id === fromColumnId);
                 const toCol = columns.find(c => c.id === toColumnId);
                 const taskIndex = fromCol.tasks.findIndex(t => t.id === taskId);
                 const task = fromCol.tasks.splice(taskIndex, 1)[0];
                 task.column = toColumnId;
-                toCol.tasks.push(task);
-                
+                insertTaskInOrder(toCol.tasks, task);
+
                 renderBoard();
             } catch (error) {
                 console.error('Failed to move task:', error);
@@ -575,15 +588,15 @@ async function handleDeleteTask(task) {
 async function moveTaskToColumn(taskId, newColumnId, oldColumnId) {
     try {
         await api.moveTask(taskId, newColumnId);
-        
+
         // Update local state
         const fromCol = columns.find(c => c.id === oldColumnId);
         const toCol = columns.find(c => c.id === newColumnId);
         const taskIndex = fromCol.tasks.findIndex(t => t.id === taskId);
         const task = fromCol.tasks.splice(taskIndex, 1)[0];
         task.column = newColumnId;
-        toCol.tasks.push(task);
-        
+        insertTaskInOrder(toCol.tasks, task);
+
         renderBoard();
     } catch (error) {
         console.error('Failed to move task:', error);
