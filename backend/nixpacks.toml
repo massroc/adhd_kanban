@@ -1,0 +1,10 @@
+# Nixpacks configuration for Django backend
+
+providers = ["python"]
+
+[phases.setup]
+nixPkgs = ["python311", "gcc"]
+aptPkgs = ["libpq-dev"]
+
+[start]
+cmd = "python manage.py migrate && python manage.py collectstatic --noinput && gunicorn config.wsgi --bind 0.0.0.0:$PORT"
