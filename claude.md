@@ -8,16 +8,15 @@ ADHD Kanban is a full-stack task management application designed specifically to
 
 ```
 adhd_kanban/
-├── Backend (Django REST API)
-│   ├── config/          # Django project settings
-│   ├── kanban/          # Main Django app (models, views, API)
-│   └── static/          # Static files
+├── backend/                 # Django REST API
+│   ├── config/              # Django project settings
+│   ├── kanban/              # Main Django app (models, views, API)
+│   └── static/              # Static files
 │
-└── Frontend (Tauri + Vanilla JS)
-    └── frontend/
-        ├── src/         # HTML, CSS, JavaScript
-        ├── src-tauri/   # Rust Tauri wrapper
-        └── tests/       # Frontend tests
+└── frontend/                # Tauri Desktop App
+    ├── src/                 # HTML, CSS, JavaScript
+    ├── src-tauri/           # Rust Tauri wrapper
+    └── tests/               # Frontend tests
 ```
 
 ### Backend (Django REST API)
@@ -59,62 +58,64 @@ adhd_kanban/
 
 ```
 adhd_kanban/
-├── config/                      # Django project configuration
-│   ├── settings.py              # Main settings
-│   ├── urls.py                  # Root URL routing
-│   ├── wsgi.py                  # WSGI entry point
-│   └── asgi.py                  # ASGI entry point
+├── backend/                         # Django REST API
+│   ├── config/                      # Django project configuration
+│   │   ├── settings.py              # Main settings
+│   │   ├── urls.py                  # Root URL routing
+│   │   ├── wsgi.py                  # WSGI entry point
+│   │   └── asgi.py                  # ASGI entry point
+│   │
+│   ├── kanban/                      # Main Django application
+│   │   ├── api/                     # REST API implementation
+│   │   │   ├── views.py             # API endpoints
+│   │   │   ├── serializers.py       # Data serialization
+│   │   │   ├── urls.py              # API URL routing
+│   │   │   └── exceptions.py        # Custom error handling
+│   │   ├── models.py                # Database models (Column, Task)
+│   │   ├── migrations/              # Database migrations
+│   │   ├── tests/                   # Backend tests
+│   │   │   ├── test_api.py          # API endpoint tests
+│   │   │   ├── test_contracts.py    # Contract tests
+│   │   │   ├── test_models.py       # Model tests
+│   │   │   └── factories.py         # Test data factories
+│   │   ├── admin.py                 # Django admin config
+│   │   └── templates/               # HTML templates (legacy views)
+│   │
+│   ├── static/                      # Django static assets
+│   ├── docker-compose.yml           # PostgreSQL container
+│   ├── requirements.txt             # Python dependencies
+│   ├── Procfile                     # Deployment config
+│   ├── pytest.ini                   # Pytest configuration
+│   ├── conftest.py                  # Shared pytest fixtures
+│   ├── manage.py                    # Django CLI
+│   └── .env.example                 # Environment template
 │
-├── kanban/                      # Main Django application
-│   ├── api/                     # REST API implementation
-│   │   ├── views.py             # API endpoints
-│   │   ├── serializers.py       # Data serialization
-│   │   ├── urls.py              # API URL routing
-│   │   └── exceptions.py        # Custom error handling
-│   ├── models.py                # Database models (Column, Task)
-│   ├── migrations/              # Database migrations
-│   ├── tests/                   # Backend tests
-│   │   ├── test_api.py          # API endpoint tests
-│   │   ├── test_contracts.py    # Contract tests
-│   │   ├── test_models.py       # Model tests
-│   │   └── factories.py         # Test data factories
-│   ├── admin.py                 # Django admin config
-│   └── templates/               # HTML templates (legacy views)
-│
-├── frontend/                    # Tauri desktop application
-│   ├── src/                     # Frontend source files
-│   │   ├── index.html           # Login/registration page
-│   │   ├── board.html           # Kanban board page
+├── frontend/                        # Tauri desktop application
+│   ├── src/                         # Frontend source files
+│   │   ├── index.html               # Login/registration page
+│   │   ├── board.html               # Kanban board page
 │   │   ├── js/
-│   │   │   ├── api.js           # API client
-│   │   │   ├── auth.js          # Auth page logic
-│   │   │   └── board.js         # Board logic & drag-drop
+│   │   │   ├── api.js               # API client
+│   │   │   ├── auth.js              # Auth page logic
+│   │   │   └── board.js             # Board logic & drag-drop
 │   │   └── css/
-│   │       └── style.css        # Application styles
-│   ├── src-tauri/               # Tauri Rust backend
+│   │       └── style.css            # Application styles
+│   ├── src-tauri/                   # Tauri Rust backend
 │   │   ├── src/
-│   │   │   ├── main.rs          # Entry point
-│   │   │   └── lib.rs           # Command handlers
-│   │   ├── Cargo.toml           # Rust dependencies
-│   │   └── tauri.conf.json      # Tauri configuration
-│   ├── tests/                   # Frontend tests
-│   │   ├── unit/                # Vitest unit tests
-│   │   ├── e2e/                 # Playwright E2E tests
-│   │   ├── mocks/               # API mocks
-│   │   └── setup.js             # Test setup
-│   ├── package.json             # Node.js dependencies
-│   ├── vitest.config.js         # Unit test config
-│   └── playwright.config.js     # E2E test config
+│   │   │   ├── main.rs              # Entry point
+│   │   │   └── lib.rs               # Command handlers
+│   │   ├── Cargo.toml               # Rust dependencies
+│   │   └── tauri.conf.json          # Tauri configuration
+│   ├── tests/                       # Frontend tests
+│   │   ├── unit/                    # Vitest unit tests
+│   │   ├── e2e/                     # Playwright E2E tests
+│   │   ├── mocks/                   # API mocks
+│   │   └── setup.js                 # Test setup
+│   ├── package.json                 # Node.js dependencies
+│   ├── vitest.config.js             # Unit test config
+│   └── playwright.config.js         # E2E test config
 │
-├── static/                      # Django static assets
-├── docker-compose.yml           # PostgreSQL container
-├── requirements.txt             # Python dependencies
-├── Procfile                     # Deployment config
-├── railway.toml                 # Railway deployment
-├── pytest.ini                   # Pytest configuration
-├── conftest.py                  # Shared pytest fixtures
-├── manage.py                    # Django CLI
-└── .env.example                 # Environment template
+└── railway.toml                     # Railway deployment config
 ```
 
 ## Data Models
@@ -183,7 +184,7 @@ Base URL: `/api/v1/`
 
 1. **Create virtual environment**
    ```bash
-   cd adhd_kanban
+   cd adhd_kanban/backend
    python -m venv venv
    source venv/bin/activate  # or venv\Scripts\activate on Windows
    ```
@@ -246,6 +247,8 @@ const API_BASE = 'https://adhdkanban-production.up.railway.app/api/v1';
 
 ### Backend Tests
 ```bash
+cd backend
+
 # Run all tests
 pytest
 
@@ -366,10 +369,10 @@ DB_PORT=5432
 ## Common Tasks
 
 ### Add a new API endpoint
-1. Define serializer in `kanban/api/serializers.py`
-2. Create view in `kanban/api/views.py`
-3. Add URL pattern in `kanban/api/urls.py`
-4. Write tests in `kanban/tests/test_api.py`
+1. Define serializer in `backend/kanban/api/serializers.py`
+2. Create view in `backend/kanban/api/views.py`
+3. Add URL pattern in `backend/kanban/api/urls.py`
+4. Write tests in `backend/kanban/tests/test_api.py`
 
 ### Add frontend functionality
 1. Update API client in `frontend/src/js/api.js`
@@ -380,6 +383,7 @@ DB_PORT=5432
 ### Run local development
 ```bash
 # Terminal 1: Backend
+cd backend
 docker-compose up -d
 python manage.py runserver
 
