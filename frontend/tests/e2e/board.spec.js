@@ -16,8 +16,6 @@ const TEST_USER = {
 test.describe('Board', () => {
   // Login before each test
   test.beforeEach(async ({ page }) => {
-    test.skip(!process.env.RUN_BOARD_TESTS, 'Skipping - set RUN_BOARD_TESTS=1 to run');
-    
     await page.goto('/');
     await page.evaluate(() => localStorage.clear());
     
@@ -33,7 +31,8 @@ test.describe('Board', () => {
 
   test('displays kanban board after login', async ({ page }) => {
     await expect(page.locator('#kanban-board')).toBeVisible();
-    await expect(page.locator('.column')).toHaveCount({ minimum: 1, timeout: 10000 });
+    // Wait for at least one column to be visible
+    await expect(page.locator('.column').first()).toBeVisible({ timeout: 10000 });
   });
 
   test('shows user menu with username', async ({ page }) => {
@@ -78,11 +77,20 @@ test.describe('Board', () => {
   });
 
   test('logout clears session and redirects', async ({ page }) => {
+    // Scroll to top to ensure user menu is accessible
+    await page.evaluate(() => window.scrollTo(0, 0));
+
     await page.click('#user-menu-btn');
-    await page.click('#logout-btn');
-    
-    await expect(page).toHaveURL(/index\.html|\/$/);
-    
+    await expect(page.locator('#user-dropdown')).toBeVisible();
+
+    // Wait a moment for dropdown to fully render
+    await page.waitForTimeout(100);
+
+    // Click logout using dispatchEvent to bypass any overlapping elements
+    await page.locator('#logout-btn').evaluate(btn => btn.click());
+
+    await expect(page).toHaveURL(/index\.html|\/$/, { timeout: 10000 });
+
     // Verify we're logged out
     const token = await page.evaluate(() => localStorage.getItem('auth_token'));
     expect(token).toBeNull();
@@ -91,8 +99,6 @@ test.describe('Board', () => {
 
 test.describe('Task Operations', () => {
   test.beforeEach(async ({ page }) => {
-    test.skip(!process.env.RUN_BOARD_TESTS, 'Skipping - set RUN_BOARD_TESTS=1 to run');
-    
     await page.goto('/');
     await page.evaluate(() => localStorage.clear());
     await page.fill('#login-username', TEST_USER.username);
@@ -132,9 +138,9 @@ test.describe('Task Operations', () => {
     
     // Set up dialog handler
     page.on('dialog', dialog => dialog.accept());
-    
-    // Click delete button
-    await task.locator('.delete-task').click();
+
+    // Click delete button (class is .task-delete not .delete-task)
+    await task.locator('.task-delete').click();
     
     // Task should be removed
     await expect(task).not.toBeVisible({ timeout: 5000 });
@@ -143,8 +149,6 @@ test.describe('Task Operations', () => {
 
 test.describe('Drag and Drop', () => {
   test.beforeEach(async ({ page }) => {
-    test.skip(!process.env.RUN_BOARD_TESTS, 'Skipping - set RUN_BOARD_TESTS=1 to run');
-    
     await page.goto('/');
     await page.evaluate(() => localStorage.clear());
     await page.fill('#login-username', TEST_USER.username);

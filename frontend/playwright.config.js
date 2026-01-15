@@ -30,6 +30,6 @@ export default defineConfig({
     command: 'npm run tauri:dev',
     url: 'http://localhost:1420',
     reuseExistingServer: !process.env.CI,
-    timeout: 120000,
+    timeout: 300000,  // 5 minutes for Rust compilation
   },
 });
